@@ -1,0 +1,5 @@
+.idea
+go.sum
+go.mod
+test/
+myquant

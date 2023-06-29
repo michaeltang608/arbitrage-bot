@@ -1,0 +1,38 @@
+package binan
+
+import (
+	"github.com/eranyanay/binance-api"
+	"ws-quant/core"
+	"ws-quant/pkg/util"
+)
+
+var (
+	apiKey    = "hAvLRB0fto2WTq1Knj82NTDUcT6jSkz9t3USWEzeIYWHALlWMbWQKZXhC74ZxOSp"
+	apiSecret = "wObw8ukcT7X42QsCGBCk2evxGhdN8ixMoEbxjviYNz3zjbCKyThVTbe7khVYVfbX"
+)
+
+func NewClient() *binance.BinanceClient {
+	return binance.NewBinanceClient(apiKey, apiSecret)
+}
+
+func BuyLimitIOC(curPrice float64) {
+	client := NewClient()
+
+	adjustPrice := util.AdjustPrice(curPrice, core.BUY)
+	log.Info("adjustPrice: %v\n", adjustPrice)
+
+	order, err := client.NewOrder(&binance.NewOrderOpts{
+		Symbol:      "EOSUSDT",
+		Type:        binance.OrderTypeLimit,
+		Price:       adjustPrice,
+		Quantity:    "10",
+		Side:        binance.OrderSideBuy,
+		TimeInForce: binance.TimeInForceIOC,
+	})
+	if err != nil {
+		log.Error("下单失败, %v\n", err)
+	} else {
+		log.Info("下单成功: %v\n", order)
+	}
+
+}

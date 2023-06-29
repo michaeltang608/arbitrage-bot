@@ -1,0 +1,116 @@
+package binan
+
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/gorilla/websocket"
+	"strconv"
+	"strings"
+	"ws-quant/cex"
+	"ws-quant/common/symb"
+	"ws-quant/models/bean"
+	"ws-quant/pkg/e"
+	logger "ws-quant/pkg/log"
+)
+
+var log = logger.NewLog("binan")
+
+type service struct {
+	conn       *websocket.Conn
+	tickerChan chan bean.TickerBean
+}
+
+func New(tickerChan chan bean.TickerBean) cex.Service {
+	return &service{
+		tickerChan: tickerChan,
+	}
+}
+
+func (s *service) Run() {
+	defer e.Recover()()
+	s.ConnectAndSubscribe()
+
+	defer func() {
+		if s.conn != nil {
+			_ = s.conn.Close()
+		}
+	}()
+	s.ListenAndNotify()
+}
+
+func (s *service) ConnectAndSubscribe() {
+	log.Info("程序开始")
+	defer e.Recover()()
+
+	url := "wss://fstream.binance.com/stream?streams="
+	format := "%susdt@ticker/"
+	for _, symbol := range symb.GetAllSymb() {
+		url += fmt.Sprintf(format, symbol)
+	}
+	conn, _, err := websocket.DefaultDialer.Dial(url[0:len(url)-1], nil)
+	if err != nil {
+		log.Panic("socket 连接失败", err.Error())
+	}
+	s.conn = conn
+	log.Info("连接成功，开始监听消息了")
+}
+
+func (s *service) GetCexName() string {
+	return cex.BINAN
+}
+
+func (s *service) Close() {
+	log.Info("接受到关闭信号")
+	_ = s.conn.Close()
+}
+func (s *service) ListenAndNotify() {
+	for {
+		msgType, msg, err := s.conn.ReadMessage()
+		if err != nil {
+			log.Panic("Error in receive:", err)
+		}
+		if msgType == websocket.PingMessage {
+			log.Info("客户端收到ping信息:%v\n", string(msg))
+			err := s.conn.WriteMessage(websocket.PongMessage, msg)
+			if err != nil {
+				log.Panic("Error in write:", err)
+				return
+			}
+		} else {
+			//log.Info("客户端收到普通信息:", string(msg))
+			symbol, curPrice := getCurPrice(string(msg))
+			//log.Info("%s当前市场价格是:%v\n", symbol, curPrice)
+
+			for _, symbol_ := range symb.GetAllSymb() {
+				if strings.HasPrefix(symbol, symbol_) {
+					tickerBean := bean.TickerBean{
+						CexName:    s.GetCexName(),
+						SymbolName: symbol_,
+						Price:      curPrice,
+					}
+					s.tickerChan <- tickerBean
+				}
+			}
+		}
+	}
+}
+
+func getCurPrice(s string) (symbol string, curPrice float64) {
+
+	// eosusdt@ticker
+	var resp = make(map[string]interface{})
+	err := json.Unmarshal([]byte(s), &resp)
+	if err != nil {
+		log.Error("数据结构错误 ", err)
+		panic("数据结构错误: " + err.Error())
+	}
+	stream := resp["stream"]
+	split := strings.Split(stream.(string), "@")
+	symbol = split[0]
+	data := resp["data"]
+	dataMap := data.(map[string]interface{})
+	price := dataMap["c"]
+	//log.Printf("结果是: %#v\n", price)
+	priceFloat, _ := strconv.ParseFloat(price.(string), 64)
+	return symbol, priceFloat
+}

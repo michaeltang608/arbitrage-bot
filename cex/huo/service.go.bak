@@ -1,0 +1,194 @@
+//
+//import (
+//	"bytes"
+//	"compress/gzip"
+//	"encoding/json"
+//	"fmt"
+//	"github.com/gorilla/websocket"
+//	"io/ioutil"
+//	"strings"
+//	"time"
+//	"ws-quant/cex"
+//	"ws-quant/common/symb"
+//	"ws-quant/models/bean"
+//	"ws-quant/pkg/e"
+//	logger "ws-quant/pkg/log"
+//)
+//
+///**
+//huo 的特殊之处如下：
+//1 返回的任何数据都是 gzip 压缩，因此需要先解压缩
+//2 收到ping数据后，要立即pong回同样的数据
+//3 订阅多条数据需要发送多次请求
+//*/
+//var log = logger.NewLog("huo")
+//
+//type Req struct {
+//	Sub string `json:"sub"`
+//	Id  string `json:"id"`
+//}
+//
+//type Pong struct {
+//	Pong interface{} `json:"pong"`
+//}
+//
+//type service struct {
+//	conn       *websocket.Conn
+//	tickerChan chan bean.TickerBean
+//}
+//
+//func New(tickerChan chan bean.TickerBean) cex.Service {
+//	return &service{
+//		tickerChan: tickerChan,
+//	}
+//}
+//
+//func (s *service) Run() {
+//	defer e.Recover()()
+//	s.ConnectAndSubscribe()
+//
+//	defer func() {
+//		if s.conn != nil {
+//			_ = s.conn.Close()
+//		}
+//	}()
+//	s.ListenAndNotify()
+//}
+//
+//func (s *service) GetCexName() string {
+//	return cex.HUO
+//}
+//
+//func (s *service) Close() {
+//	_ = s.conn.Close()
+//}
+//
+//// ConnectAndSubscribe 连接并订阅，封装在一起便于重试
+//func (s *service) ConnectAndSubscribe() {
+//	var err error
+//	socketUrl := "wss://api.huobi.pro/ws"
+//	conn, _, err := websocket.DefaultDialer.Dial(socketUrl, nil)
+//	if err != nil {
+//		log.Panic("socket 连接失败", err.Error())
+//	}
+//	s.conn = conn
+//	log.Info("连接成功，开始监听消息了")
+//
+//	// 先发送一次订阅消息
+//	for idx, symbol_ := range symb.GetAllSymb() {
+//		req := &Req{
+//			Sub: fmt.Sprintf("market.%susdt.ticker", symbol_),
+//			Id:  fmt.Sprintf("id00%d", idx),
+//		}
+//		reqBytes, _ := json.Marshal(req)
+//		err = conn.WriteMessage(websocket.TextMessage, reqBytes)
+//		if err != nil {
+//			log.Panic("huo 订阅失败", err.Error())
+//		}
+//	}
+//}
+//
+//func (s *service) ListenAndNotify() {
+//	gzipErrCount := 0
+//	retryCount := 0
+//	for {
+//		// 接受数据 可能三种:  ping, subs resp, biz
+//		_, msgBytes, err := s.conn.ReadMessage()
+//		msg, err := getUnGzipMsg(msgBytes)
+//		if err != nil {
+//			log.Error("un gzip 数据失败:", err, ", 压缩前数据是", string(msgBytes))
+//			gzipErrCount++
+//			time.Sleep(time.Second * 1)
+//			if gzipErrCount >= 10 {
+//				// 准备重新连接
+//				//feishu.Send(fmt.Sprintf("unGzip error exceed %d times", gzipErrCount))
+//				gzipErrCount = 0
+//				if retryCount > 3 {
+//					// 重连超过三次，放弃，退出程序
+//					log.Panic("huo的重试连接和订阅超过三次，异常退出")
+//				}
+//				_ = s.conn.Close()
+//				s.ConnectAndSubscribe()
+//				retryCount++
+//			}
+//			continue
+//		}
+//		retryCount = 0
+//		var msgMap = make(map[string]interface{})
+//		err = json.Unmarshal([]byte(msg), &msgMap)
+//		if err != nil {
+//			log.Panic("Unmarshal huo msg error ", err)
+//		}
+//		pingContent, ok := msgMap["ping"]
+//		if ok {
+//			// 接受并回复 ping 请求
+//			pong := &Pong{
+//				Pong: pingContent,
+//			}
+//			pongBytes, _ := json.Marshal(pong)
+//			err = s.conn.WriteMessage(websocket.TextMessage, pongBytes)
+//			if err != nil {
+//				log.Info("websocket发送huobi pong msg失败, err=%v\n ", err)
+//			}
+//		} else {
+//			// 业务数据
+//			_, ok := msgMap["ch"]
+//			if !ok {
+//				// 第一次订阅成功与否的回复
+//				log.Info("收到第一次非业务数据, 收到的数据是:" + msg)
+//			} else {
+//				// 行情数据
+//				s.processContent(msg)
+//			}
+//		}
+//	}
+//}
+//
+//func (s *service) processContent(msg string) {
+//	// todo 此处做好 panic操作,发出告警，并通知其他 cex做好stop工作
+//	var msgMap = make(map[string]interface{})
+//	_ = json.Unmarshal([]byte(msg), &msgMap)
+//
+//	ch := msgMap["ch"]
+//	split := strings.Split(ch.(string), ".")
+//	symbol := split[1]
+//	tick, ok := msgMap["tick"]
+//	if !ok {
+//		log.Panic("收到的数据格式错误，不包含tick, 收到的数据是:" + msg)
+//	}
+//	tickMap := tick.(map[string]interface{})
+//	curPrice, ok := tickMap["close"]
+//	if !ok {
+//		log.Panic("收到的数据格式错误，tick不包含close, 收到的数据是:" + msg)
+//	}
+//	//log.Info("huo获取的%s最新价格是: %v\n", symbol, curPrice)
+//	priceFloat, _ := curPrice.(float64)
+//
+//	for _, symbol_ := range symb.GetAllSymb() {
+//		if strings.HasPrefix(symbol, symbol_) {
+//			tickerBean := bean.TickerBean{
+//				CexName:    s.GetCexName(),
+//				SymbolName: symbol_,
+//				Price:      priceFloat,
+//			}
+//			s.tickerChan <- tickerBean
+//		}
+//	}
+//
+//}
+//
+//func getUnGzipMsg(gzipBytes []byte) (message string, err error) {
+//
+//	//log.Info("客户端收到huobi普通gzip信息")
+//	gzipReader, err := gzip.NewReader(bytes.NewReader(gzipBytes))
+//	if err != nil {
+//		return "", err
+//	}
+//	readBytes, err := ioutil.ReadAll(gzipReader)
+//	if err != nil {
+//		return "", err
+//	}
+//	message = string(readBytes)
+//	//log.Info("客户端收到huobi普通信息解压后是:", message)
+//	return message, nil
+//}
