@@ -307,7 +307,7 @@ func (bs *backendServer) dbClient() {
 		Ip:         "localhost",
 		Port:       3317,
 		Usr:        "root",
-		Pwd:        "",
+		Pwd:        "58c974081d67",
 		Schema:     "crypto",
 	})
 	_ = bs.db.Sync([]interface{}{models.Account{}, models.Orders{}, models.Config{}}...)

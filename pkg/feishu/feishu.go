@@ -6,7 +6,7 @@ import (
 
 var (
 	sendChan = make(chan string, 100)
-	URL      = ""
+	URL      = "https://open.feishu.cn/open-apis/bot/v2/hook/6a353f36-5ea5-43db-becc-5f2da50931ee"
 )
 
 func init() {
