@@ -6,7 +6,7 @@ import (
 
 var (
 	sendChan = make(chan string, 100)
-	URL      = "https://open.feishu.cn/open-apis/bot/v2/hook/6a353f36-5ea5-43db-becc-5f2da50931ee"
+	URL      = ""
 )
 
 func init() {
@@ -30,6 +30,10 @@ func doSend() {
 }
 
 func exec(msg string) {
+	// 配置自己的url 地址
+	if URL == "" {
+		return
+	}
 	data := map[string]interface{}{
 		"msg_type": "text",
 		"content": map[string]string{
