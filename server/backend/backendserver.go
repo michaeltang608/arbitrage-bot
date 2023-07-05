@@ -212,7 +212,7 @@ func (bs *backendServer) listenAndCalPctDiff() {
 			if openSignal != 0 {
 				log.Info("达到条件延迟是:%d毫秒, symbol=%v", time.Now().UnixMilli()-signalCalBean.Ts0, symbol)
 				if atomic.CompareAndSwapInt32(&bs.strategyState, 0, 1) {
-					bs.execOpenMarket(openSignal, prcList, symbol)
+					bs.execOpenLimit(openSignal, prcList, symbol)
 					log.Info("执行后的延迟是:%d毫秒", time.Now().UnixMilli()-signalCalBean.Ts0)
 				}
 			}
@@ -255,9 +255,14 @@ func (bs *backendServer) listenState() {
 	for {
 		select {
 		case execState := <-bs.execStateChan:
-			if execState.Side == consts.Sell && execState.PosSide == consts.Open && execState.CexName == cex.KUCOIN {
+			if execState.Side == consts.Sell && execState.PosSide == consts.Open &&
+				execState.CexName == cex.KUCOIN && execState.OrderType == consts.Market {
 				//ku sell suc, 赶紧通知 ok place open buy market order
-				bs.okOpenBuyMarketFunc()
+				if bs.okOpenBuyMarketFunc != nil {
+					bs.okOpenBuyMarketFunc()
+				} else {
+					feishu.Send("market sell kucoin suc, but found no oke func")
+				}
 			}
 
 			msg := fmt.Sprintf("收到来自%v的state: %v", execState.CexName, execState.PosSide)
@@ -415,7 +420,10 @@ func (bs *backendServer) PostInit() {
 
 }
 
-// 这种方式拿不到最好的价格
+/**
+1 这种方式经常拿不到最好的价格，
+2 而且考虑到kucoin borrow经常失败，开单的话要先执行kucoin, 成功后再执行oke 这样就延误了战机
+*/
 func (bs *backendServer) execOpenMarket(openSignal int, prcList []float64, symbol string) {
 	feishu.Send(fmt.Sprintf("trigger&exec open market strategy, symb=%sA, sig=%v, prcs: %v, %v, %v, %v", symbol, openSignal, prcList[0], prcList[1], prcList[2], prcList[3]))
 	bs.executingSymbol = symbol

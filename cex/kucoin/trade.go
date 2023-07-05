@@ -96,7 +96,7 @@ func (s *service) TradeLimit(symbol, price, size, side, posSide string) string {
 	respBytes := authHttpRequest(url, http.MethodPost, string(reqBytes))
 	result := string(respBytes)
 	if fastjson.GetString(respBytes, "code") != "200000" {
-		feishu.Send("ok上链失败," + result)
+		feishu.Send("ku 上链limit 失败," + result)
 	}
 	return result
 }
@@ -121,7 +121,7 @@ func (s *service) TradeMarket(symbol, size, side, posSide string) string {
 	result := string(respBytes)
 	if fastjson.GetString(respBytes, "code") != "200000" {
 		log.Error("ku开仓市价单失败, 返回报文=%s", result)
-		feishu.Send("ok上链失败," + result)
+		feishu.Send("ku上链 market 失败," + result)
 	}
 	return result
 }

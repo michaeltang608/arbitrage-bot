@@ -154,9 +154,7 @@ func (s *service) pingPublic() {
 		msgBytes, _ := json.Marshal(pingMsg)
 		err := s.pubCon.WriteMessage(websocket.TextMessage, msgBytes)
 		if err != nil {
-			log.Error("发送ping失败: %v\n", err)
-			//结束本次 ping goroutine, 会有监测机制重启新的ping的 goroutine
-			return
+			log.Panic("发送ping失败", err)
 		} else {
 			//log.Info("发送ping数据成功,数据是%s", string(msgBytes))
 		}

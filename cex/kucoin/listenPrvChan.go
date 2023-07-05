@@ -106,16 +106,18 @@ func (s *service) ListenAndNotifyPrivate() {
 			if isFilled {
 				if orderDb.PosSide == "open" {
 					s.execStateChan <- bean.ExecState{
-						PosSide: consts.Open,
-						CexName: cex.KUCOIN,
-						Side:    orderDb.Side,
+						PosSide:   consts.Open,
+						CexName:   cex.KUCOIN,
+						Side:      orderDb.Side,
+						OrderType: orderDb.OrderType,
 					}
 				}
 				if orderDb.PosSide == "close" {
 					s.execStateChan <- bean.ExecState{
-						PosSide: consts.Close,
-						CexName: cex.KUCOIN,
-						Side:    orderDb.Side,
+						PosSide:   consts.Close,
+						CexName:   cex.KUCOIN,
+						Side:      orderDb.Side,
+						OrderType: orderDb.OrderType,
 					}
 				}
 			}

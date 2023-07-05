@@ -7,3 +7,5 @@ const Buy = "buy"
 const Sell = "sell"
 
 const Close = "close"
+const Market = "market"
+const Limit = "limit"
