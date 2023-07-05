@@ -9,9 +9,9 @@ import (
 func (bs *backendServer) scheduleJobs() {
 	//定时同步账户余额, 每两个小时记录一次
 	c := cron.New()
-	_, _ = c.AddFunc("0 0/6 * * *", func() {
-		bs.persistBalance("cron")
-	})
+	//_, _ = c.AddFunc("0 0/6 * * *", func() {
+	//	bs.persistBalance("cron")
+	//})
 
 	//每隔1h 清零一次并通知
 	_, _ = c.AddFunc("0 * * * *", func() {

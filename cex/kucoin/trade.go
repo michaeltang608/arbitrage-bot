@@ -88,6 +88,7 @@ func (s *service) TradeLimit(symbol, price, size, side, posSide string) string {
 		Symbol:      instId,
 		AutoBorrow:  posSide == "open" && strings.ToLower(side) == "sell",
 		Price:       price,
+		Type:        "limit",
 		Size:        size,
 		TimeInForce: "GTC",
 	}
