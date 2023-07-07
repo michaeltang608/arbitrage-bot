@@ -81,7 +81,7 @@ func (bs *backendServer) persistBalance(type_ string) {
 //	gintool.SucMsg(cxt, msg)
 //	return
 //}
-func (bs *backendServer) openPos(cxt *gin.Context) {
+func (bs *backendServer) openLimit(cxt *gin.Context) {
 	var req core.OrderReq
 	err := cxt.Bind(&req)
 	if err != nil {
@@ -93,7 +93,7 @@ func (bs *backendServer) openPos(cxt *gin.Context) {
 		gintool.SucMsg(cxt, "cex不存在")
 		return
 	}
-	msg := service.OpenPosMarket(req.Symbol, req.Size, req.Side)
+	msg := service.TradeLimit(req.Symbol, req.Price, req.Size, req.Side, "open")
 	gintool.SucMsg(cxt, msg)
 	return
 }

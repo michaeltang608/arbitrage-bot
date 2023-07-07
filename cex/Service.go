@@ -18,6 +18,8 @@ type Service interface {
 	MarginBalance() float64
 
 	ClosePosLimit(price string) (msg string)
+	TradeLimit(symbol, price, size, side, posSide string) string
+
 	ClosePosMarket(askPrc float64, bidPrc float64) (msg string)
 	OpenPosLimit(symbol, price, size, side string) (msg string)
 	OpenPosMarket(symbol, size, side string) (msg string)

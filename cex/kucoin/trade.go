@@ -77,7 +77,7 @@ func (s *service) ClosePosLimit(price string) (msg string) {
 
 func (s *service) TradeLimit(symbol, price, size, side, posSide string) string {
 	// kucoin的订单信息将会全部在推送中获取
-	log.Info("准备执行trade")
+	log.Info("kulimit 准备执行trade, symbol=%v, price=%v, size=%v, side=%v, posSide=%v\n", symbol, price, size, side, posSide)
 	url := "/api/v1/margin/order"
 	instId := fmt.Sprintf("%s-USDT", strings.ToUpper(symbol))
 
