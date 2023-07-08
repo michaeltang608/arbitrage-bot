@@ -17,6 +17,7 @@ func (s *service) connectAndSubscribePublic() {
 
 	s.connectPublic()
 	s.subscribeTickers()
+	s.subscribeFutures()
 	//s.subscribeInstruments()
 
 }
@@ -41,28 +42,48 @@ func (s *service) subscribeInstruments() {
 	}
 
 }
+func (s *service) subscribeFutures() {
+	var err error
+	argList := make([]map[string]interface{}, 0)
+	for _, symbol_ := range symb.GetAllOkFuture() {
+
+		arg := make(map[string]interface{})
+		arg["channel"] = "tickers"
+		arg["instId"] = fmt.Sprintf("%s-USDT-SWAP", strings.ToUpper(symbol_))
+		argList = append(argList, arg)
+	}
+
+	req := &Req{
+		Op:   "subscribe",
+		Args: argList,
+	}
+	reqBytes, _ := json.Marshal(req)
+	err = s.pubCon.WriteMessage(websocket.TextMessage, reqBytes)
+	if err != nil {
+		log.Panic("发送OKEX订阅futures消息失败 ", err)
+	}
+	log.Info("订阅全部futures数据成功")
+}
 func (s *service) subscribeTickers() {
 	var err error
-	// subscribe ticker
-
+	argList := make([]map[string]interface{}, 0)
 	for _, symbol_ := range symb.GetAllSymb() {
-		argList := make([]map[string]interface{}, 0)
+
 		arg := make(map[string]interface{})
 		arg["channel"] = "tickers"
 		arg["instId"] = fmt.Sprintf("%s-USDT", strings.ToUpper(symbol_))
-
 		argList = append(argList, arg)
-		req := &Req{
-			Op:   "subscribe",
-			Args: argList,
-		}
-		reqBytes, _ := json.Marshal(req)
-		err = s.pubCon.WriteMessage(websocket.TextMessage, reqBytes)
-		if err != nil {
-			log.Panic("发送OKEX订阅消息失败 ", err)
-		}
 	}
 
+	req := &Req{
+		Op:   "subscribe",
+		Args: argList,
+	}
+	reqBytes, _ := json.Marshal(req)
+	err = s.pubCon.WriteMessage(websocket.TextMessage, reqBytes)
+	if err != nil {
+		log.Panic("发送OKEX订阅消息失败 ", err)
+	}
 	log.Info("订阅全部tickers数据成功")
 
 }
@@ -134,8 +155,8 @@ func (s *service) listenAndNotifyPublic() {
 			price := fastjson.GetString(msgBytes, "data", "0", "last")
 			bestBid := fastjson.GetString(msgBytes, "data", "0", "bidPx")
 
-			symbolStr := fastjson.GetString(msgBytes, "data", "0", "instId")
-			symbolStr = strings.Split(symbolStr, "-")[0]
+			instId := fastjson.GetString(msgBytes, "data", "0", "instId")
+			symbolStr := strings.Split(instId, "-")[0]
 			priceBeatAskFloat, _ := strconv.ParseFloat(bestAsk, 64)
 			priceFloat, _ := strconv.ParseFloat(price, 64)
 			priceBestBidFloat, _ := strconv.ParseFloat(bestBid, 64)
@@ -144,6 +165,7 @@ func (s *service) listenAndNotifyPublic() {
 				if strings.ToUpper(symbol_) == strings.ToUpper(symbolStr) {
 					tickerBean := bean.TickerBean{
 						CexName:      s.GetCexName(),
+						InstId:       instId,
 						SymbolName:   symbol_,
 						Price:        priceFloat,
 						PriceBestBid: priceBestBidFloat,

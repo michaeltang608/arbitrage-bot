@@ -31,16 +31,18 @@ var log = logger.NewLog("backend")
 type backendServer struct {
 	config *models.Config
 
-	tickerChan    chan bean.TickerBean               //负责监听接收数据
-	TickerDataMap map[string]map[string]*bean.Ticker //存储 symbol-cex-prices，
-	CalChan       chan SignalCalBean                 //负责分析数据
-	cexServiceMap map[string]cex.Service
-	stopChan      chan struct{}
+	tickerChan        chan bean.TickerBean               //负责监听接收数据
+	TickerDataMap     map[string]map[string]*bean.Ticker //存储 symbol-cex-prices，
+	OkMarginFutureMap map[string][]float64
+	CalChan           chan SignalCalBean //负责分析数据
+	cexServiceMap     map[string]cex.Service
+	stopChan          chan struct{}
 
-	curMax          float64
-	db              *xorm.Engine
-	engine          *gin.Engine
-	executingSymbol string //如eos
+	curMax             float64
+	curMaxMarginFuture float64
+	db                 *xorm.Engine
+	engine             *gin.Engine
+	executingSymbol    string //如eos
 
 	//strategyExecOrdersChan chan *models.Orders //cex => server 两个执行的交易所向server上传执行结果的chan
 	strategyState int32 //0: 默认, 1 触发开仓策略，2 某cex完成open单，3 both cex完成open单；11 触发平仓；12 某cex完成close; 13 both cex 完成cex, 然后转0
@@ -126,6 +128,9 @@ func (bs *backendServer) listenData() {
 	for {
 		select {
 		case tickerBean := <-bs.tickerChan:
+			if tickerBean.CexName == cex.OKE {
+				go bs.processOkMarginFuture(tickerBean)
+			}
 			//接收数据并填装， 同时预警长时间未更新的 ticker 数据, 和 计算价格之差
 			ticker := bs.TickerDataMap[tickerBean.SymbolName][tickerBean.CexName]
 			ticker.PriceBestAsk = tickerBean.PriceBestAsk
@@ -141,10 +146,10 @@ func (bs *backendServer) listenData() {
 				Ts1:    time.Now().UnixMilli(),
 			}
 
-			if bs.config.LogTicker == 1 && tickerBean.CexName == cex.KUCOIN {
+			if bs.config.LogTicker == LogKuc && tickerBean.CexName == cex.KUCOIN {
 				log.Info("收到ticker数据，%+v", tickerBean)
 			}
-			if bs.config.LogTicker == 2 && tickerBean.CexName == cex.OKE {
+			if bs.config.LogTicker == LogOke && tickerBean.CexName == cex.OKE {
 				log.Info("收到ticker数据，%+v", tickerBean)
 			}
 			if ticker.LastTime > 0 && ticker.CurTime > (ticker.LastTime+bs.config.TickerTimeout) {
@@ -162,7 +167,7 @@ func (bs *backendServer) listenAndCalPctDiff() {
 	for {
 		select {
 		case signalCalBean := <-bs.CalChan:
-			if bs.config.LogTicker == 3 {
+			if bs.config.LogTicker == LogDelay {
 				now := time.Now().UnixMilli()
 				delay := now - signalCalBean.Ts0
 				if delay > 0 {
@@ -370,6 +375,12 @@ func (bs *backendServer) initMap() {
 			bs.TickerDataMap[sym][cexName] = &bean.Ticker{}
 		}
 	}
+	// init okex margin-future map，第一个idx存储
+	bs.OkMarginFutureMap = make(map[string][]float64)
+	for _, sym := range symb.GetAllOkFuture() {
+		bs.OkMarginFutureMap[sym] = make([]float64, 4)
+	}
+
 	// 初始化 chan
 	bs.tickerChan = make(chan bean.TickerBean, 200)
 	bs.CalChan = make(chan SignalCalBean, 200)
@@ -556,4 +567,32 @@ func (bs *backendServer) execCloseMarket(prcList []float64, symbol string) {
 
 		}(cexName, service_, prcList)
 	}
+}
+
+// seek arbitrage oppor between oke margin and future(perpetual)
+func (bs *backendServer) processOkMarginFuture(tickerBean bean.TickerBean) {
+	if prcList, ok := bs.OkMarginFutureMap[tickerBean.SymbolName]; ok {
+		if strings.HasSuffix(tickerBean.InstId, "-SWAP") {
+			// future
+			prcList[2] = tickerBean.PriceBestAsk
+			prcList[3] = tickerBean.PriceBestBid
+		} else {
+			// margin
+			prcList[0] = tickerBean.PriceBestAsk
+			prcList[1] = tickerBean.PriceBestBid
+		}
+		if prcList[0] > 0 && prcList[2] > 0 && bs.config.LogTicker == LogMarginFuture {
+			_, realDiffPct := bs.realDiff(prcList)
+			log.Info("%v的margin/future real diff is %v", tickerBean.SymbolName, realDiffPct)
+			if bs.curMaxMarginFuture < realDiffPct {
+				bs.curMaxMarginFuture = realDiffPct
+				log.Info("curMaxMarginFuture=%v\n", bs.curMaxMarginFuture)
+			}
+		}
+	} else {
+		if bs.config.LogTicker == LogMarginFuture {
+			log.Info("没有找到%v的初始化信息", tickerBean)
+		}
+	}
+
 }

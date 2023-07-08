@@ -3,6 +3,7 @@ package bean
 type TickerBean struct {
 	CexName      string
 	SymbolName   string
+	InstId       string
 	PriceBestAsk float64
 	Price        float64
 	PriceBestBid float64

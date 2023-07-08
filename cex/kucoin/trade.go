@@ -96,8 +96,13 @@ func (s *service) TradeLimit(symbol, price, size, side, posSide string) string {
 	reqBytes, _ := json.Marshal(req)
 	respBytes := authHttpRequest(url, http.MethodPost, string(reqBytes))
 	result := string(respBytes)
-	if fastjson.GetString(respBytes, "code") != "200000" {
+	// {"msg":"param error","code":"400100"}  这个异常，是ku的原因，需要移除该 symbol了
+	respCode := fastjson.GetString(respBytes, "code")
+	if respCode != "200000" {
 		feishu.Send("ku 上链limit 失败," + result)
+		if respCode == "400100" {
+			feishu.Send("需要移除该symbol了，" + symbol)
+		}
 	}
 	return result
 }

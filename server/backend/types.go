@@ -11,6 +11,14 @@ const (
 	StateCloseFilledAll  StrategyStateEnum = 13
 )
 
+var (
+	LogKuc = int64(1)
+	LogOke = int64(2)
+
+	LogDelay        = int64(3)
+	LogMarginFuture = int64(4)
+)
+
 type RatioBean struct {
 	UpperPct float64 //cex按照字母排序，最大的 pct
 	LowerPct float64 //
