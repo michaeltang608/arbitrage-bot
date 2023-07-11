@@ -295,8 +295,9 @@ func (bs *backendServer) listenState() {
 				r := atomic.AddInt32(&bs.strategyState, 1)
 				if r == int32(StateCloseFilledAll) {
 					log.Info("策略全部完成")
-					feishu.Send("strategy all done!!!")
-					bs.strategyState = 0
+					feishu.Send("strategy all done!, wait for manual reset")
+					//等待人工重置，否则容易再次出发，大概率机会没了，无法双向交易
+					bs.strategyState = -1
 					bs.executingSymbol = ""
 					go func() {
 						time.Sleep(time.Second * 5)
@@ -581,18 +582,20 @@ func (bs *backendServer) processOkMarginFuture(tickerBean bean.TickerBean) {
 			prcList[0] = tickerBean.PriceBestAsk
 			prcList[1] = tickerBean.PriceBestBid
 		}
-		if prcList[0] > 0 && prcList[2] > 0 && bs.config.LogTicker == LogMarginFuture {
+		if prcList[0] > 0 && prcList[2] > 0 {
 			_, realDiffPct := bs.realDiff(prcList)
-			log.Info("%v的margin/future real diff is %v", tickerBean.SymbolName, realDiffPct)
+			//log.Info("%v的margin/future real diff is %v", tickerBean.SymbolName, realDiffPct)
 			if bs.curMaxMarginFuture < realDiffPct {
 				bs.curMaxMarginFuture = realDiffPct
-				log.Info("curMaxMarginFuture=%v\n", bs.curMaxMarginFuture)
+				if bs.config.LogTicker == LogMarginFuture {
+					log.Info("curMaxMarginFuture=%v, symbol=%v\n", bs.curMaxMarginFuture, tickerBean.SymbolName)
+				}
 			}
 		}
 	} else {
-		if bs.config.LogTicker == LogMarginFuture {
-			log.Info("没有找到%v的初始化信息", tickerBean)
-		}
+		//if bs.config.LogTicker == LogMarginFuture {
+		//	log.Error("没有找到%v的初始化信息", tickerBean)
+		//}
 	}
 
 }

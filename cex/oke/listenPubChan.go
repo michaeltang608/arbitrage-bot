@@ -126,10 +126,8 @@ func (s *service) listenAndNotifyPublic() {
 			time.Sleep(time.Second)
 			errCnt++
 			if errCnt > 10 {
-				log.Info("读取失败累计超过10次，开始重连")
-				time.Sleep(time.Second * 2)
-				s.connectAndSubscribePublic()
-				time.Sleep(time.Second)
+				log.Info("读取失败累计超过10次，开始重启")
+				log.Panic("oke read pub err")
 			}
 			continue
 		}
