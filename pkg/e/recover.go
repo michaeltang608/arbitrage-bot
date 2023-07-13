@@ -3,6 +3,7 @@ package e
 import (
 	"fmt"
 	"log"
+	"time"
 	"ws-quant/pkg/feishu"
 )
 
@@ -12,6 +13,7 @@ func Recover() func() {
 		if any_ := recover(); any_ != nil {
 			log.Printf("程序异常，准备退出: %v", any_)
 			feishu.Send(fmt.Sprintf("程序异常，退出,%v", any_))
+			time.Sleep(time.Second * 3)
 			log.Panic(any_)
 		}
 	}

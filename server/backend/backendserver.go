@@ -189,7 +189,7 @@ func (bs *backendServer) listenAndCalPctDiff() {
 			//目前只考虑两家cex: kucoin& ok
 			kucoinTicker := m[cex.KUCOIN]
 			okeTicker := m[cex.OKE]
-			if kucoinTicker.Price <= 0 || okeTicker.Price <= 0 {
+			if kucoinTicker.PriceBestAsk <= 0 || kucoinTicker.PriceBestBid <= 0 || okeTicker.PriceBestAsk <= 0 || okeTicker.PriceBestBid <= 0 {
 				continue
 			}
 			prcList := make([]float64, 0)
@@ -587,9 +587,7 @@ func (bs *backendServer) processOkMarginFuture(tickerBean bean.TickerBean) {
 			//log.Info("%v的margin/future real diff is %v", tickerBean.SymbolName, realDiffPct)
 			if bs.curMaxMarginFuture < realDiffPct {
 				bs.curMaxMarginFuture = realDiffPct
-				if bs.config.LogTicker == LogMarginFuture {
-					log.Info("curMaxMarginFuture=%v, symbol=%v\n", bs.curMaxMarginFuture, tickerBean.SymbolName)
-				}
+				log.Info("curMaxMarginFuture=%v, symbol=%v\n", bs.curMaxMarginFuture, tickerBean.SymbolName)
 			}
 		}
 	} else {

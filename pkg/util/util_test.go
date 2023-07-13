@@ -6,7 +6,7 @@ import (
 )
 
 func TestA(t *testing.T) {
-
+	//NumTrunc(80/)
 }
 
 func look(f float64) {
