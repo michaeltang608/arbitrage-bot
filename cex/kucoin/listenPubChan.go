@@ -48,8 +48,17 @@ func (s *service) connectPublic() {
 	}
 	socketUrl := fmt.Sprintf("wss://ws-api-spot.kucoin.com?token=%s", token)
 	conn, _, err := websocket.DefaultDialer.Dial(socketUrl, nil)
-	if err != nil {
-		panic("连接异常" + err.Error())
+
+	if err != nil || conn == nil {
+		//第二次连接
+		conn, _, err = websocket.DefaultDialer.Dial(socketUrl, nil)
+		if err != nil || conn == nil {
+			//第三 次连接
+			conn, _, err = websocket.DefaultDialer.Dial(socketUrl, nil)
+			if err != nil || conn == nil {
+				log.Panic("连不上，没救了")
+			}
+		}
 	}
 	s.pubCon = conn
 	s.pubConLastConnectTime = time.Now().Second()

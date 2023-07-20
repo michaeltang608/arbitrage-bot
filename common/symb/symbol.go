@@ -23,6 +23,8 @@ var (
 		"BNB", "TRX", "AVAX", "ATOM", "SHIB", "SUI", "TRX", "BLUR", "ALGO", "UNI", "SNX", "APT", "FIL", "STX", "EOS",
 		"WAVES", "LTC", "ARB", "WOO", "CFX", "FLOKI", "ICP", "DOT", "APE", "LINK", "XRP", "EGLD", "THETA", "DOGE", "USDC",
 		"XRP", "CRV"}
+
+	resultMarginBinanOke = []string{"HBAR", "XMR", "ADA", "DYDX", "AAVE", "LUNA", "GRT", "ETC", "SAND", "OP", "IMX", "NEAR", "SUSHI", "AR", "ZEC", "ETH", "MASK", "ZIL", "ETH", "DASH", "NEO", "GMT", "MANA", "MATIC", "LDO", "SOL", "XLM", "TRX", "FTM", "AVAX", "ATOM", "SHIB", "SUI", "TRX", "ALGO", "UNI", "SNX", "APT", "FIL", "STX", "USTC", "EOS", "WAVES", "LTC", "ARB", "WOO", "PEPE", "CFX", "FLOKI", "ICP", "DOT", "APE", "LINK", "XRP", "EGLD", "MINA", "GMX", "THETA", "DOGE", "USDC", "LUNC", "BCH", "XRP", "CRV"}
 )
 
 func GetAllSymb() []string {
