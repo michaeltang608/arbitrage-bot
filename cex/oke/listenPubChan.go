@@ -159,19 +159,17 @@ func (s *service) listenAndNotifyPublic() {
 			priceFloat, _ := strconv.ParseFloat(price, 64)
 			priceBestBidFloat, _ := strconv.ParseFloat(bestBid, 64)
 
-			for _, symbol_ := range symb.GetAllSymb() {
-				if strings.ToUpper(symbol_) == strings.ToUpper(symbolStr) {
-					tickerBean := bean.TickerBean{
-						CexName:      s.GetCexName(),
-						InstId:       instId,
-						SymbolName:   symbol_,
-						Price:        priceFloat,
-						PriceBestBid: priceBestBidFloat,
-						PriceBestAsk: priceBeatAskFloat,
-						Ts0:          time.Now().UnixMilli(),
-					}
-					s.tickerChan <- tickerBean
+			if symb.SymbolExist(symbolStr) {
+				tickerBean := bean.TickerBean{
+					CexName:      s.GetCexName(),
+					InstId:       instId,
+					SymbolName:   strings.ToUpper(symbolStr),
+					Price:        priceFloat,
+					PriceBestBid: priceBestBidFloat,
+					PriceBestAsk: priceBeatAskFloat,
+					Ts0:          time.Now().UnixMilli(),
 				}
+				s.tickerChan <- tickerBean
 			}
 
 		} else {

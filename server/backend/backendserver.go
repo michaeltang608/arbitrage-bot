@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 	"ws-quant/cex"
-	"ws-quant/cex/kucoin"
+	"ws-quant/cex/binan"
 	"ws-quant/cex/models"
 	"ws-quant/cex/oke"
 	"ws-quant/common/consts"
@@ -74,7 +74,7 @@ func (bs *backendServer) QuantRun() error {
 	// create cex service
 	serviceList := make([]cex.Service, 0)
 	serviceList = append(serviceList, oke.New(bs.tickerChan, bs.execStateChan, bs.db))
-	serviceList = append(serviceList, kucoin.New(bs.tickerChan, bs.execStateChan, bs.db))
+	serviceList = append(serviceList, binan.New(bs.tickerChan, bs.execStateChan, bs.db))
 	bs.cexServiceMap = make(map[string]cex.Service)
 	for _, service := range serviceList {
 		bs.cexServiceMap[service.GetCexName()] = service
@@ -146,7 +146,7 @@ func (bs *backendServer) listenData() {
 				Ts1:    time.Now().UnixMilli(),
 			}
 
-			if bs.config.LogTicker == LogKuc && tickerBean.CexName == cex.KUCOIN {
+			if bs.config.LogTicker == LogKuc && tickerBean.CexName == cex.BINAN {
 				log.Info("收到ticker数据，%+v", tickerBean)
 			}
 			if bs.config.LogTicker == LogOke && tickerBean.CexName == cex.OKE {
@@ -186,15 +186,15 @@ func (bs *backendServer) listenAndCalPctDiff() {
 				feishu.Send(errMsg)
 				continue
 			}
-			//目前只考虑两家cex: kucoin& ok
-			kucoinTicker := m[cex.KUCOIN]
+			//目前只考虑两家cex: binan& ok
+			binanTicker := m[cex.BINAN]
 			okeTicker := m[cex.OKE]
-			if kucoinTicker.PriceBestAsk <= 0 || kucoinTicker.PriceBestBid <= 0 || okeTicker.PriceBestAsk <= 0 || okeTicker.PriceBestBid <= 0 {
+			if binanTicker.PriceBestAsk <= 0 || binanTicker.PriceBestBid <= 0 || okeTicker.PriceBestAsk <= 0 || okeTicker.PriceBestBid <= 0 {
 				continue
 			}
 			prcList := make([]float64, 0)
-			prcList = append(prcList, kucoinTicker.PriceBestAsk)
-			prcList = append(prcList, kucoinTicker.PriceBestBid)
+			prcList = append(prcList, binanTicker.PriceBestAsk)
+			prcList = append(prcList, binanTicker.PriceBestBid)
 			prcList = append(prcList, okeTicker.PriceBestAsk)
 			prcList = append(prcList, okeTicker.PriceBestBid)
 
@@ -261,12 +261,12 @@ func (bs *backendServer) listenState() {
 		select {
 		case execState := <-bs.execStateChan:
 			if execState.Side == consts.Sell && execState.PosSide == consts.Open &&
-				execState.CexName == cex.KUCOIN && execState.OrderType == consts.Market {
+				execState.CexName == cex.BINAN && execState.OrderType == consts.Market {
 				//ku sell suc, 赶紧通知 ok place open buy market order
 				if bs.okOpenBuyMarketFunc != nil {
 					bs.okOpenBuyMarketFunc()
 				} else {
-					feishu.Send("market sell kucoin suc, but found no oke func")
+					feishu.Send("market sell binan suc, but found no oke func")
 				}
 			}
 
@@ -434,18 +434,18 @@ func (bs *backendServer) PostInit() {
 
 /**
 1 这种方式经常拿不到最好的价格，
-2 而且考虑到kucoin borrow经常失败，开单的话要先执行kucoin, 成功后再执行oke 这样就延误了战机
+2 而且考虑到binan borrow经常失败，开单的话要先执行binan, 成功后再执行oke 这样就延误了战机
 */
 func (bs *backendServer) execOpenMarket(openSignal int, prcList []float64, symbol string) {
 	feishu.Send(fmt.Sprintf("trigger&exec open market strategy, symb=%sA, sig=%v, prcs: %v, %v, %v, %v", symbol, openSignal, prcList[0], prcList[1], prcList[2], prcList[3]))
 	bs.executingSymbol = symbol
 	log.Info("signalOpen, strategyState=%v", bs.strategyState)
 	if openSignal == 1 {
-		// sell kucoin first, then buy oke upon filled signal
+		// sell binan first, then buy oke upon filled signal
 		for cexName, cexService := range bs.cexServiceMap {
 			go func(cexName string, service cex.Service) {
 				size := util.NumTrunc(bs.config.TradeAmt / prcList[0])
-				if cexName == cex.KUCOIN {
+				if cexName == cex.BINAN {
 					side := "sell"
 					log.Info("ku准备开仓, side=%v, symbol=%v,  size=%v\n", side, symbol, size)
 					msg := service.OpenPosMarket(symbol, size, side)
@@ -477,7 +477,7 @@ func (bs *backendServer) execOpenMarket(openSignal int, prcList []float64, symbo
 	for cexName, cexService := range bs.cexServiceMap {
 		go func(cexName string, service cex.Service) {
 			size := util.NumTrunc(bs.config.TradeAmt / prcList[0])
-			if cexName == cex.KUCOIN {
+			if cexName == cex.BINAN {
 				side := "buy"
 				if openSignal > 0 {
 					side = "sell"
@@ -519,7 +519,7 @@ func (bs *backendServer) execOpenLimit(openSignal int, prcList []float64, symbol
 		go func(cexName string, service cex.Service) {
 			priceF := 0.0
 			size := util.NumTrunc(bs.config.TradeAmt / prcList[0])
-			if cexName == cex.KUCOIN {
+			if cexName == cex.BINAN {
 				side := "buy"
 				priceF = prcList[0]
 				if openSignal > 0 {
@@ -556,10 +556,10 @@ func (bs *backendServer) execCloseMarket(prcList []float64, symbol string) {
 	log.Info("signal close, strategyState=%v", bs.strategyState)
 	for cexName, service_ := range bs.cexServiceMap {
 		go func(cexName string, service cex.Service, prcList []float64) {
-			if cexName == cex.KUCOIN {
-				log.Info("kucoinLog 执行关仓， market")
+			if cexName == cex.BINAN {
+				log.Info("binanLog 执行关仓， market")
 				msg := service.ClosePosMarket(prcList[0], prcList[1])
-				log.Info("kucoinLog 关仓结果是:" + msg)
+				log.Info("binanLog 关仓结果是:" + msg)
 			} else if cexName == cex.OKE {
 				log.Info("okeLog 执行关仓， market")
 				msg := service.ClosePosMarket(prcList[2], prcList[3])

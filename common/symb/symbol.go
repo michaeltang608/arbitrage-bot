@@ -1,5 +1,7 @@
 package symb
 
+import "strings"
+
 var (
 	marginList = []string{"HBAR", "XMR", "ADA", "OMG", "DYDX", "AAVE", "GRT", "ETC", "SAND", "OP", "IMX", "NEAR",
 		"SUSHI", "AR", "ZEC", "ETH", "MASK", "ZIL", "ETH", "DASH", "NEO", "GMT", "MANA", "MATIC", "CRO", "SOL", "XLM",
@@ -25,10 +27,23 @@ var (
 		"XRP", "CRV"}
 
 	resultMarginBinanOke = []string{"HBAR", "XMR", "ADA", "DYDX", "AAVE", "LUNA", "GRT", "ETC", "SAND", "OP", "IMX", "NEAR", "SUSHI", "AR", "ZEC", "ETH", "MASK", "ZIL", "ETH", "DASH", "NEO", "GMT", "MANA", "MATIC", "LDO", "SOL", "XLM", "TRX", "FTM", "AVAX", "ATOM", "SHIB", "SUI", "TRX", "ALGO", "UNI", "SNX", "APT", "FIL", "STX", "USTC", "EOS", "WAVES", "LTC", "ARB", "WOO", "PEPE", "CFX", "FLOKI", "ICP", "DOT", "APE", "LINK", "XRP", "EGLD", "MINA", "GMX", "THETA", "DOGE", "USDC", "LUNC", "BCH", "XRP", "CRV"}
+
+	symbolMap = make(map[string]struct{})
 )
 
+func init() {
+	for _, s := range resultMarginBinanOke {
+		symbolMap[s] = struct{}{}
+	}
+}
+
 func GetAllSymb() []string {
-	return marginList
+	return resultMarginBinanOke
+}
+
+func SymbolExist(symbol string) bool {
+	_, exist := symbolMap[strings.ToUpper(symbol)]
+	return exist
 }
 
 func GetAllOkFuture() []string {
