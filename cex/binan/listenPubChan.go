@@ -35,14 +35,21 @@ func (s *service) connectAndSubscribePublic() {
 }
 
 func (s *service) listenAndNotifyPublic() {
+	errCnt := 0
 	for {
 		if s.pubCon == nil {
 			log.Panic("pubCon == nil")
 		}
 		_, msgBytes, err := s.pubCon.ReadMessage()
 		if err != nil {
-			log.Panic("read msg err=", err)
+			errCnt += 1
+			log.Error("read msg err=", err)
+			time.Sleep(time.Second)
+			if errCnt > 10 {
+				log.Panic("累计多次读取失败，退出")
+			}
 		}
+		errCnt = 0
 		instTicker := fastjson.GetString(msgBytes, "stream")
 		if strings.HasSuffix(instTicker, "usdt@ticker") {
 			instId := instTicker[:len(instTicker)-len("@ticker")]
