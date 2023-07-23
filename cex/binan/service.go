@@ -109,16 +109,17 @@ func (s *service) SignalCloseLimit(price string) bool {
 
 // ReloadOrders 重新从db加载开仓和关仓订单信息
 func (s *service) ReloadOrders() {
-	openOrder, closeOrder := cex.QueryOpenCloseOrders(s.db, s.GetCexName())
-	s.openOrder = openOrder
-	s.closeOrder = closeOrder
+	//openOrder, closeOrder := cex.QueryOpenCloseOrders(s.db, s.GetCexName())
+	//s.openOrder = openOrder
+	//s.closeOrder = closeOrder
+	//TODO implement me
 }
 
 func (s *service) Run() {
 	//defer e.Recover()()
 	//go s.checkPong()
 	//s.ConnectAndSubscribe()
-	//s.ListenAndNotify()
+	s.ListenAndNotify()
 }
 
 func (s *service) ConnectAndSubscribe() {

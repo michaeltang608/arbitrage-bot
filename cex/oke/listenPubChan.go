@@ -80,6 +80,9 @@ func (s *service) subscribeTickers() {
 		Args: argList,
 	}
 	reqBytes, _ := json.Marshal(req)
+	if s.pubCon == nil {
+		log.Error("排查原因，为啥是pubCon=nil")
+	}
 	err = s.pubCon.WriteMessage(websocket.TextMessage, reqBytes)
 	if err != nil {
 		log.Panic("发送OKEX订阅消息失败 ", err)
@@ -114,25 +117,15 @@ func (s *service) connectPublic() {
 }
 
 func (s *service) listenAndNotifyPublic() {
-	errCnt := 0
+	//errCnt := 0
 	for {
 		if s.pubCon == nil {
-			time.Sleep(time.Second)
-			continue
+			log.Panic("pubCon == nil")
 		}
 		_, msgBytes, err := s.pubCon.ReadMessage()
 		if err != nil {
-			log.Error("Error in receive:", err)
-			time.Sleep(time.Second)
-			errCnt++
-			if errCnt > 10 {
-				log.Info("读取失败累计超过10次，开始重启")
-				log.Panic("oke read pub err")
-			}
-			continue
+			log.Panic("读取pubCon数据失败", err)
 		}
-
-		errCnt = 0
 		/*
 			接受到的数据有如下几种场景
 			1 接受到 pong

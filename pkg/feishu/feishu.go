@@ -1,9 +1,5 @@
 package feishu
 
-import (
-	"ws-quant/pkg/util"
-)
-
 var (
 	sendChan = make(chan string, 100)
 	URL      = "https://open.feishu.cn/open-apis/bot/v2/hook/6a353f36-5ea5-43db-becc-5f2da50931ee"
@@ -34,12 +30,13 @@ func exec(msg string) {
 	if URL == "" {
 		return
 	}
-	data := map[string]interface{}{
+	_ = map[string]interface{}{
 		"msg_type": "text",
 		"content": map[string]string{
 			"text": "[txl]-" + msg,
 		},
 	}
-	util.SendPost(URL, data)
+
+	//util.SendPost(URL, data)
 	//log.Info("resp: %v\n", resp)
 }

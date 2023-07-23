@@ -29,26 +29,14 @@ func (s *service) connectAndLoginPrivate() {
 监听 余额变动事件更新usdt余额
 */
 func (s *service) listenAndNotifyPrivate() {
-	errCnt := 0
 	for {
 		if s.prvCon == nil {
-			time.Sleep(time.Second)
-			continue
+			log.Panic("prvChan is nil")
 		}
 		_, msgBytes, err := s.prvCon.ReadMessage()
 		// 0 读取诗句失败
 		if err != nil {
-			log.Error("Error in receive:", err)
-			time.Sleep(time.Second)
-			s.ConnectAndSubscribe()
-			errCnt++
-			if errCnt > 10 {
-				log.Info("读取失败累计超过10次，开始重连")
-				time.Sleep(time.Second * 2)
-				s.connectAndLoginPrivate()
-				time.Sleep(time.Second)
-			}
-			continue
+			log.Panic("读取私有chan失败", err)
 		}
 		// 1 接受到 pong 数据
 		msg := string(msgBytes)

@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/valyala/fastjson"
+	"strconv"
 	"strings"
+	"time"
 	"ws-quant/common/symb"
+	"ws-quant/models/bean"
 )
 
 func (s *service) ListenAndNotifyPublic() {
@@ -42,12 +45,30 @@ func (s *service) listenAndNotifyPublic() {
 		}
 		instTicker := fastjson.GetString(msgBytes, "stream")
 		if strings.HasSuffix(instTicker, "usdt@ticker") {
+			instId := instTicker[:len(instTicker)-len("@ticker")]
 			symbolLower := instTicker[:len(instTicker)-len("usdt@ticker")]
 			ask := fastjson.GetString(msgBytes, "data", "a")
 			bid := fastjson.GetString(msgBytes, "data", "b")
-			log.Info("symbol=%s, ask=%s, bid=%s\n", symbolLower, ask, bid)
+			cur := fastjson.GetString(msgBytes, "data", "c")
+
+			askFloat, _ := strconv.ParseFloat(ask, 64)
+			bidFloat, _ := strconv.ParseFloat(bid, 64)
+			curFloat, _ := strconv.ParseFloat(cur, 64)
+
+			if symb.SymbolExist(symbolLower) {
+				tickerBean := bean.TickerBean{
+					CexName:      s.GetCexName(),
+					InstId:       instId,
+					SymbolName:   strings.ToUpper(symbolLower),
+					Price:        curFloat,
+					PriceBestBid: bidFloat,
+					PriceBestAsk: askFloat,
+					Ts0:          time.Now().UnixMilli(),
+				}
+				s.tickerChan <- tickerBean
+			}
 		} else {
-			log.Info("收到msg: %v\n", string(msgBytes))
+			log.Info("binan收到其他未知msg: %v\n", string(msgBytes))
 		}
 	}
 }

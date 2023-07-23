@@ -12,8 +12,8 @@ const (
 )
 
 var (
-	LogKuc = int64(1)
-	LogOke = int64(2)
+	LogBinan = int64(1)
+	LogOke   = int64(2)
 
 	LogDelay        = int64(3)
 	LogMarginFuture = int64(4)

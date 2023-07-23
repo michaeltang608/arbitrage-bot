@@ -4,13 +4,11 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"strings"
-	"sync/atomic"
 	"time"
 	"ws-quant/cex"
 	"ws-quant/cex/binan"
 	"ws-quant/cex/models"
 	"ws-quant/cex/oke"
-	"ws-quant/common/consts"
 	"ws-quant/common/symb"
 	"ws-quant/core"
 	"ws-quant/models/bean"
@@ -79,33 +77,26 @@ func (bs *backendServer) QuantRun() error {
 	for _, service := range serviceList {
 		bs.cexServiceMap[service.GetCexName()] = service
 		go func(s cex.Service) {
-			defer e.Recover()()
 			s.Run()
 		}(service)
 	}
 	// listen ticker
-	for i := 0; i < 100; i++ {
-		go func() {
-			defer e.Recover()()
-			bs.listenData()
-		}()
+	for i := 0; i < 10; i++ {
+		go bs.listenData()
 	}
 
-	// calculate and trigger trade
-	for i := 0; i < 100; i++ {
-		go func() {
-			defer e.Recover()()
-			bs.listenAndCalPctDiff()
-		}()
+	//calculate and trigger trade
+	for i := 0; i < 10; i++ {
+		go bs.listenAndCalPctDiff()
 	}
 
-	go func() {
-		defer e.Recover()()
-		bs.listenState()
-	}()
+	//go func() {
+	//	defer e.Recover()()
+	//	bs.listenState()
+	//}()
 	// schedule 一些定时任务
-	bs.scheduleJobs()
-	bs.PostInit()
+	//bs.scheduleJobs()
+	//bs.PostInit()
 	// router
 	bs.router()
 	feishu.Send("program start successfully")
@@ -128,9 +119,9 @@ func (bs *backendServer) listenData() {
 	for {
 		select {
 		case tickerBean := <-bs.tickerChan:
-			if tickerBean.CexName == cex.OKE {
-				go bs.processOkMarginFuture(tickerBean)
-			}
+			//if tickerBean.CexName == cex.OKE {
+			//	go bs.processOkMarginFuture(tickerBean)
+			//}
 			//接收数据并填装， 同时预警长时间未更新的 ticker 数据, 和 计算价格之差
 			ticker := bs.TickerDataMap[tickerBean.SymbolName][tickerBean.CexName]
 			ticker.PriceBestAsk = tickerBean.PriceBestAsk
@@ -146,7 +137,8 @@ func (bs *backendServer) listenData() {
 				Ts1:    time.Now().UnixMilli(),
 			}
 
-			if bs.config.LogTicker == LogKuc && tickerBean.CexName == cex.BINAN {
+			// 打印日志 并校验延迟推送
+			if bs.config.LogTicker == LogBinan && tickerBean.CexName == cex.BINAN {
 				log.Info("收到ticker数据，%+v", tickerBean)
 			}
 			if bs.config.LogTicker == LogOke && tickerBean.CexName == cex.OKE {
@@ -155,35 +147,24 @@ func (bs *backendServer) listenData() {
 			if ticker.LastTime > 0 && ticker.CurTime > (ticker.LastTime+bs.config.TickerTimeout) {
 				msg := fmt.Sprintf("超时未推送的数据,curTime=%d, lastTime=%d, cex=%s\n", ticker.CurTime, ticker.LastTime, tickerBean.CexName+"x")
 				log.Info(msg)
-				feishu.Send(msg)
+				//feishu.Send(msg)
 			}
 
 		}
 	}
 }
 
-// cal pct diff among different CEXs, 可由定时器或价格更新的 chan 触发
+//cal pct diff among different CEXs, 可由定时器或价格更新的 chan 触发
 func (bs *backendServer) listenAndCalPctDiff() {
 	for {
 		select {
 		case signalCalBean := <-bs.CalChan:
-			if bs.config.LogTicker == LogDelay {
-				now := time.Now().UnixMilli()
-				delay := now - signalCalBean.Ts0
-				if delay > 0 {
-					//log.Info("处理时间间隔%d毫秒", delay)
-					if delay >= 3 {
-						log.Info("具体处理时间间隔ts0=%d, ts1=%d, now=%d\n", signalCalBean.Ts0, signalCalBean.Ts1, now)
-					}
-				}
-			}
-
 			symbol := signalCalBean.Symbol
 			m, ok := bs.TickerDataMap[symbol]
 			if !ok {
 				errMsg := "收到价格通知，但是没找到初始化数据"
 				log.Error(errMsg)
-				feishu.Send(errMsg)
+				//feishu.Send(errMsg)
 				continue
 			}
 			//目前只考虑两家cex: binan& ok
@@ -198,29 +179,29 @@ func (bs *backendServer) listenAndCalPctDiff() {
 			prcList = append(prcList, okeTicker.PriceBestAsk)
 			prcList = append(prcList, okeTicker.PriceBestBid)
 
-			openSignal, realDiff := bs.realDiff(prcList)
+			_, realDiff := bs.realDiff(prcList)
 			if bs.curMax < realDiff {
 				bs.curMax = realDiff
 				log.Info("curMax is:%v\n", bs.curMax)
 			}
 
-			if bs.strategyState == int32(StateOpenFilledAll) {
-				if strings.ToUpper(symbol) == strings.ToUpper(bs.executingSymbol) {
-					if bs.shouldClose(prcList) {
-						if atomic.CompareAndSwapInt32(&bs.strategyState, int32(StateOpenFilledAll), int32(StateCloseSignalled)) {
-							bs.execCloseMarket(prcList, symbol)
-
-						}
-					}
-				}
-			}
-			if openSignal != 0 {
-				log.Info("达到条件延迟是:%d毫秒, symbol=%v", time.Now().UnixMilli()-signalCalBean.Ts0, symbol)
-				if atomic.CompareAndSwapInt32(&bs.strategyState, 0, 1) {
-					bs.execOpenLimit(openSignal, prcList, symbol)
-					log.Info("执行后的延迟是:%d毫秒", time.Now().UnixMilli()-signalCalBean.Ts0)
-				}
-			}
+			//if bs.strategyState == int32(StateOpenFilledAll) {
+			//	if strings.ToUpper(symbol) == strings.ToUpper(bs.executingSymbol) {
+			//		if bs.shouldClose(prcList) {
+			//			if atomic.CompareAndSwapInt32(&bs.strategyState, int32(StateOpenFilledAll), int32(StateCloseSignalled)) {
+			//				bs.execCloseMarket(prcList, symbol)
+			//
+			//			}
+			//		}
+			//	}
+			//}
+			//if openSignal != 0 {
+			//	log.Info("达到条件延迟是:%d毫秒, symbol=%v", time.Now().UnixMilli()-signalCalBean.Ts0, symbol)
+			//	if atomic.CompareAndSwapInt32(&bs.strategyState, 0, 1) {
+			//		bs.execOpenLimit(openSignal, prcList, symbol)
+			//		log.Info("执行后的延迟是:%d毫秒", time.Now().UnixMilli()-signalCalBean.Ts0)
+			//	}
+			//}
 		}
 	}
 }
@@ -256,66 +237,66 @@ func (bs *backendServer) realDiff(prices []float64) (signal int, realDiffPct flo
 }
 
 // 监听并流转 策略状态
-func (bs *backendServer) listenState() {
-	for {
-		select {
-		case execState := <-bs.execStateChan:
-			if execState.Side == consts.Sell && execState.PosSide == consts.Open &&
-				execState.CexName == cex.BINAN && execState.OrderType == consts.Market {
-				//ku sell suc, 赶紧通知 ok place open buy market order
-				if bs.okOpenBuyMarketFunc != nil {
-					bs.okOpenBuyMarketFunc()
-				} else {
-					feishu.Send("market sell binan suc, but found no oke func")
-				}
-			}
-
-			msg := fmt.Sprintf("收到来自%v的state: %v", execState.CexName, execState.PosSide)
-			feishu.Send(msg)
-			log.Info(msg)
-			if execState.PosSide == consts.Open {
-				if bs.strategyState != int32(StateOpenSignalled) && bs.strategyState != int32(StateOpenFilledPart) {
-					msg := fmt.Sprintf("strategyState是%v, 但收到了openFilled", bs.strategyState)
-					log.Error(msg)
-					feishu.Send(msg)
-				}
-				r := atomic.AddInt32(&bs.strategyState, 1)
-				if r == int32(StateOpenFilledAll) {
-					//该监听 symbol的close 阈值了
-					if bs.executingSymbol == "" {
-						feishu.Send("strategyState已经是3，但是oppor为空")
-					}
-				}
-			} else if execState.PosSide == consts.Close {
-				if bs.strategyState != int32(StateCloseSignalled) && bs.strategyState != int32(StateCloseFilledPart) {
-					msg := fmt.Sprintf("strategyState是%v, 但收到了closeFilled", bs.strategyState)
-					log.Error(msg)
-					feishu.Send(msg)
-				}
-				r := atomic.AddInt32(&bs.strategyState, 1)
-				if r == int32(StateCloseFilledAll) {
-					log.Info("策略全部完成")
-					feishu.Send("strategy all done!, wait for manual reset")
-					//等待人工重置，否则容易再次出发，大概率机会没了，无法双向交易
-					bs.strategyState = -1
-					bs.executingSymbol = ""
-					go func() {
-						time.Sleep(time.Second * 5)
-						bs.persistBalance("strategy-finish")
-					}()
-				}
-
-			}
-			log.Info("监听上报的订单更新,strategyState=%v", bs.strategyState)
-			feishu.Send(fmt.Sprintf("strategyState最新值:%v", bs.strategyState))
-		}
-	}
-}
+//func (bs *backendServer) listenState() {
+//	for {
+//		select {
+//		case execState := <-bs.execStateChan:
+//			if execState.Side == consts.Sell && execState.PosSide == consts.Open &&
+//				execState.CexName == cex.BINAN && execState.OrderType == consts.Market {
+//				//ku sell suc, 赶紧通知 ok place open buy market order
+//				if bs.okOpenBuyMarketFunc != nil {
+//					bs.okOpenBuyMarketFunc()
+//				} else {
+//					feishu.Send("market sell binan suc, but found no oke func")
+//				}
+//			}
+//
+//			msg := fmt.Sprintf("收到来自%v的state: %v", execState.CexName, execState.PosSide)
+//			feishu.Send(msg)
+//			log.Info(msg)
+//			if execState.PosSide == consts.Open {
+//				if bs.strategyState != int32(StateOpenSignalled) && bs.strategyState != int32(StateOpenFilledPart) {
+//					msg := fmt.Sprintf("strategyState是%v, 但收到了openFilled", bs.strategyState)
+//					log.Error(msg)
+//					feishu.Send(msg)
+//				}
+//				r := atomic.AddInt32(&bs.strategyState, 1)
+//				if r == int32(StateOpenFilledAll) {
+//					//该监听 symbol的close 阈值了
+//					if bs.executingSymbol == "" {
+//						feishu.Send("strategyState已经是3，但是oppor为空")
+//					}
+//				}
+//			} else if execState.PosSide == consts.Close {
+//				if bs.strategyState != int32(StateCloseSignalled) && bs.strategyState != int32(StateCloseFilledPart) {
+//					msg := fmt.Sprintf("strategyState是%v, 但收到了closeFilled", bs.strategyState)
+//					log.Error(msg)
+//					feishu.Send(msg)
+//				}
+//				r := atomic.AddInt32(&bs.strategyState, 1)
+//				if r == int32(StateCloseFilledAll) {
+//					log.Info("策略全部完成")
+//					feishu.Send("strategy all done!, wait for manual reset")
+//					//等待人工重置，否则容易再次出发，大概率机会没了，无法双向交易
+//					bs.strategyState = -1
+//					bs.executingSymbol = ""
+//					go func() {
+//						time.Sleep(time.Second * 5)
+//						bs.persistBalance("strategy-finish")
+//					}()
+//				}
+//
+//			}
+//			log.Info("监听上报的订单更新,strategyState=%v", bs.strategyState)
+//			feishu.Send(fmt.Sprintf("strategyState最新值:%v", bs.strategyState))
+//		}
+//	}
+//}
 
 func (bs *backendServer) dbClient() {
 	bs.db = db.New(&db.Config{
 		DriverName: "mysql",
-		Ip:         "localhost",
+		Ip:         "104.194.239.171",
 		Port:       3317,
 		Usr:        "root",
 		Pwd:        "58c974081d67",
@@ -368,6 +349,7 @@ func (bs *backendServer) QuantClose() error {
 
 func (bs *backendServer) initMap() {
 	// 初始化要监控的 ticker
+	log.Info("初始化map和 channel")
 	bs.TickerDataMap = make(map[string]map[string]*bean.Ticker, 0)
 	for _, sym := range symb.GetAllSymb() {
 		bs.TickerDataMap[sym] = make(map[string]*bean.Ticker)
