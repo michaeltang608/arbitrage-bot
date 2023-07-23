@@ -61,6 +61,19 @@ func New(tickerChan chan bean.TickerBean, execStateChan chan bean.ExecState,
 	return s
 }
 
+func (s *service) Run() {
+	go s.ListenAndNotifyPublic()
+	go s.ListenAndNotifyPrivate()
+}
+func (s *service) ListenAndNotify() {
+	//todo 考虑取消此公共方法，太冗余了
+}
+
+func (s *service) ConnectAndSubscribe() {
+	// binan 的 connect, subs 和 listen/notify是在一起的
+	//todo 考虑取消此公共方法
+}
+
 func (s *service) MarginBalance() float64 {
 	//TODO implement me
 	panic("implement me")
@@ -113,28 +126,6 @@ func (s *service) ReloadOrders() {
 	//s.openOrder = openOrder
 	//s.closeOrder = closeOrder
 	//TODO implement me
-}
-
-func (s *service) Run() {
-	//defer e.Recover()()
-	//go s.checkPong()
-	//s.ConnectAndSubscribe()
-	s.ListenAndNotify()
-}
-
-func (s *service) ConnectAndSubscribe() {
-	//s.ConnectAndSubscribePublic()
-	//s.ConnectAndSubscribePrivate()
-}
-
-func (s *service) ListenAndNotify() {
-	//go func() {
-	go s.ListenAndNotifyPublic()
-	//}()
-	//go func() {
-	//	defer e.Recover()()
-	//	s.ListenAndNotifyPrivate()
-	//}()
 }
 
 func (s *service) GetCexName() string {

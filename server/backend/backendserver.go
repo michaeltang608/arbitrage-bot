@@ -95,7 +95,7 @@ func (bs *backendServer) QuantRun() error {
 	//	bs.listenState()
 	//}()
 	// schedule 一些定时任务
-	//bs.scheduleJobs()
+	bs.scheduleJobs()
 	//bs.PostInit()
 	// router
 	bs.router()

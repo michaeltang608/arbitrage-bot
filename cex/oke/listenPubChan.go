@@ -104,12 +104,16 @@ func (s *service) connectPublic() {
 	var err error
 	socketUrl := "wss://ws.okx.com:8443/ws/v5/public"
 	conn, _, err := websocket.DefaultDialer.Dial(socketUrl, nil)
-	if err != nil {
+	if err != nil || conn == nil {
 		// 第二次尝试连接，提高胜率
+		log.Error("第一次连接失败%v\n", err)
 		conn, _, err = websocket.DefaultDialer.Dial(socketUrl, nil)
-		if err != nil {
+		if err != nil || conn == nil {
 			log.Panic("oke socket 连续两次连接失败", err.Error())
 		}
+	}
+	if conn == nil {
+		log.Panic("彻底放弃")
 	}
 	s.pubCon = conn
 	s.pubConLastConnectTime = time.Now().Second()
