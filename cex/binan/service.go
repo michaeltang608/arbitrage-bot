@@ -75,8 +75,7 @@ func (s *service) ConnectAndSubscribe() {
 }
 
 func (s *service) MarginBalance() float64 {
-	//TODO implement me
-	panic("implement me")
+	return s.queryMarginBal()
 }
 
 func (s *service) ClosePosLimit(price string) (msg string) {

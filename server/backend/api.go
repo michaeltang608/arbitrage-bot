@@ -50,8 +50,9 @@ func (bs *backendServer) persistBalance(type_ string) {
 
 	total := 0.0
 	for _, service := range bs.cexServiceMap {
-		result[service.GetCexName()] = service.MarginBalance()
-		total += service.MarginBalance()
+		bal := service.MarginBalance()
+		result[service.GetCexName()] = bal
+		total += bal
 	}
 	marshal, _ := json.Marshal(result)
 	acc := &models.Account{
