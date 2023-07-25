@@ -91,11 +91,11 @@ func (s *service) ConnectAndSubscribe() {
 // ListenAndNotify 处理数据接收
 func (s *service) ListenAndNotify() {
 	go func() {
-		defer e.Recover()
+		defer e.Recover()()
 		s.listenAndNotifyPublic()
 	}()
 	go func() {
-		defer e.Recover()
+		defer e.Recover()()
 		s.listenAndNotifyPrivate()
 	}()
 }
