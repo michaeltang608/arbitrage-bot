@@ -121,15 +121,22 @@ func (s *service) connectPublic() {
 }
 
 func (s *service) listenAndNotifyPublic() {
-	//errCnt := 0
+	errCnt := 0
 	for {
 		if s.pubCon == nil {
 			log.Panic("pubCon == nil")
 		}
 		_, msgBytes, err := s.pubCon.ReadMessage()
 		if err != nil {
-			log.Panic("读取pubCon数据失败", err)
+			log.Error("读取pubCon数据失败", err.Error())
+			errCnt++
+			time.Sleep(time.Second)
+			if errCnt > 10 {
+				log.Panic("pubCon读取异常")
+			}
+			continue
 		}
+		errCnt = 0
 		/*
 			接受到的数据有如下几种场景
 			1 接受到 pong

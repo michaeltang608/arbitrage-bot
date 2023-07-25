@@ -13,6 +13,7 @@ import (
 	"ws-quant/core"
 	"ws-quant/models/bean"
 	"ws-quant/pkg/db"
+	"ws-quant/pkg/dingding"
 	"ws-quant/pkg/e"
 	"ws-quant/pkg/feishu"
 	logger "ws-quant/pkg/log"
@@ -99,7 +100,7 @@ func (bs *backendServer) QuantRun() error {
 	//bs.PostInit()
 	// router
 	bs.router()
-	feishu.Send("program start successfully")
+	dingding.Send("program start successfully")
 	err := bs.engine.Run(":8083")
 	return err
 }

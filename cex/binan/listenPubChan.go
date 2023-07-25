@@ -46,8 +46,9 @@ func (s *service) listenAndNotifyPublic() {
 			log.Error("read msg err=", err)
 			time.Sleep(time.Second)
 			if errCnt > 10 {
-				log.Panic("累计多次读取失败，退出")
+				log.Panic("pubCon累计多次失败")
 			}
+			continue
 		}
 		errCnt = 0
 		instTicker := fastjson.GetString(msgBytes, "stream")
