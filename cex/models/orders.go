@@ -29,3 +29,11 @@ type Config struct {
 	StrategyOpenThreshold  float64 `json:"strategy_open_threshold" xorm:"default 1.0 Double comment('开的条件')"`
 	StrategyCloseThreshold float64 `json:"strategy_close_threshold" xorm:"default 0.1 Double comment('关的条件')"`
 }
+
+type Oppor struct {
+	ID      uint32    `json:"id" xorm:"notnull pk autoincr int id comment('id')"`
+	InstId  string    `json:"inst_id" xorm:"notnull default '' Varchar(30) comment('InstId')"`
+	Cex     string    `json:"cex" xorm:"notnull default '' Varchar(30) comment('cex')"`
+	MaxDiff string    `json:"price" xorm:"notnull default '' Varchar(50) comment('limit 价格')"`
+	Created time.Time `json:"created" xorm:"notnull default CURRENT_TIMESTAMP timestamp comment('创建时间')"`
+}
