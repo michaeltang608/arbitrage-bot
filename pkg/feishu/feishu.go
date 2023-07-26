@@ -1,6 +1,7 @@
 package feishu
 
 import (
+	"log"
 	"ws-quant/pkg/util"
 )
 
@@ -31,15 +32,13 @@ func doSend() {
 
 func exec(msg string) {
 	// 配置自己的url 地址
-	if URL == "" {
-		return
-	}
+
 	data := map[string]interface{}{
 		"msg_type": "text",
 		"content": map[string]string{
 			"text": "[txl]-" + msg,
 		},
 	}
-	util.SendPost(URL, data)
-	//log.Info("resp: %v\n", resp)
+	resp := util.SendPost(URL, data)
+	log.Printf("resp: %v\n", resp)
 }
