@@ -82,6 +82,7 @@ func (s *service) subscribeTickers() {
 	reqBytes, _ := json.Marshal(req)
 	if s.pubCon == nil {
 		log.Error("排查原因，为啥是pubCon=nil")
+		log.Panic("待人工排查")
 	}
 	err = s.pubCon.WriteMessage(websocket.TextMessage, reqBytes)
 	if err != nil {
@@ -113,8 +114,11 @@ func (s *service) connectPublic() {
 		}
 	}
 	if conn == nil {
+		log.Error("彻底放弃，无语")
 		log.Panic("彻底放弃")
 	}
+
+	log.Info("conn 不为nil")
 	s.pubCon = conn
 	s.pubConLastConnectTime = time.Now().Second()
 	log.Info("连接pubCon 成功，开始监听消息了")
