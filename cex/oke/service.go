@@ -16,7 +16,7 @@ var (
 	log = logger.NewLog("okeLog")
 )
 
-type service struct {
+type Service struct {
 	pubCon                *websocket.Conn
 	prvCon                *websocket.Conn
 	pubConLock            sync.Mutex
@@ -36,8 +36,8 @@ type service struct {
 }
 
 func New(tickerChan chan bean.TickerBean, execStateChan chan bean.ExecState,
-	db_ *xorm.Engine) cex.Service {
-	s := &service{
+	db_ *xorm.Engine) *Service {
+	s := &Service{
 		tickerChan:    tickerChan,
 		db:            db_,
 		execStateChan: execStateChan,
@@ -56,14 +56,14 @@ func New(tickerChan chan bean.TickerBean, execStateChan chan bean.ExecState,
 	return s
 }
 
-func (s *service) GetOpenOrder() *models.Orders {
+func (s *Service) GetOpenOrder() *models.Orders {
 	return s.openOrder
 }
-func (s *service) GetCloseOrder() *models.Orders {
+func (s *Service) GetCloseOrder() *models.Orders {
 	return s.closeOrder
 }
 
-func (s *service) SignalCloseLimit(price string) bool {
+func (s *Service) SignalCloseLimit(price string) bool {
 	go func() {
 		log.Info("执行关仓， price=" + price)
 		msg := s.ClosePosLimit(price)
@@ -72,24 +72,24 @@ func (s *service) SignalCloseLimit(price string) bool {
 	return true
 }
 
-func (s *service) ReloadOrders() {
-	openOrder, closeOrder := cex.QueryOpenCloseOrders(s.db, s.GetCexName())
+func (s *Service) ReloadOrders() {
+	openOrder, closeOrder := cex.QueryOpenCloseOrders(s.db, cex.OKE)
 	s.openOrder = openOrder
 	s.closeOrder = closeOrder
 }
 
-func (s *service) Run() {
+func (s *Service) Run() {
 	defer e.Recover()()
 	s.ConnectAndSubscribe()
 	s.ListenAndNotify()
 }
-func (s *service) ConnectAndSubscribe() {
+func (s *Service) ConnectAndSubscribe() {
 	s.connectAndLoginPrivate()
 	s.connectAndSubscribePublic()
 }
 
 // ListenAndNotify 处理数据接收
-func (s *service) ListenAndNotify() {
+func (s *Service) ListenAndNotify() {
 	go func() {
 		defer e.Recover()
 		s.listenAndNotifyPublic()
@@ -100,11 +100,7 @@ func (s *service) ListenAndNotify() {
 	}()
 }
 
-func (s *service) GetCexName() string {
-	return cex.OKE
-}
-
-func (s *service) Close() {
+func (s *Service) Close() {
 	log.Info("准备关闭连接")
 	if s.pubCon != nil {
 		_ = s.pubCon.Close()
@@ -114,7 +110,7 @@ func (s *service) Close() {
 	}
 }
 
-func (s *service) uploadOrder(posSide, side string) {
+func (s *Service) uploadOrder(posSide, side string) {
 	s.execStateChan <- bean.ExecState{
 		PosSide: posSide,
 		CexName: cex.OKE,

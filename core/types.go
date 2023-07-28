@@ -23,7 +23,6 @@ const (
 
 type OrderReq struct {
 	Symbol  string `json:"symbol"`
-	Cex     string `json:"cex"`
 	Price   string `json:"price"`
 	Size    string `json:"size"`
 	Side    string `json:"side"`

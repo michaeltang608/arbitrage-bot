@@ -13,7 +13,7 @@ import (
 	"ws-quant/pkg/util"
 )
 
-func (s *service) startPing() {
+func (s *Service) startPing() {
 	go func() {
 		ticker := time.NewTicker(time.Second * 15)
 		for range ticker.C {
@@ -25,7 +25,7 @@ func (s *service) startPing() {
 	}()
 }
 
-func (s *service) OpenPosLimit(symbol, price, size, side string) (msg string) {
+func (s *Service) OpenPosLimit(symbol, price, size, side string) (msg string) {
 	if s.openOrder != nil {
 		errMsg := fmt.Sprintf("已开仓中，勿再重复开仓:%+v", *s.openOrder)
 		feishu.Send("ok已开仓，勿重复开")
@@ -34,7 +34,7 @@ func (s *service) OpenPosLimit(symbol, price, size, side string) (msg string) {
 	return s.TradeLimit(symbol, price, size, side, "open")
 }
 
-func (s *service) OpenPosMarket(symbol, size, side string) (msg string) {
+func (s *Service) OpenPosMarket(symbol, size, side string) (msg string) {
 	if s.openOrder != nil {
 		errMsg := fmt.Sprintf("已开仓中，勿再重复开仓:%+v", *s.openOrder)
 		feishu.Send("ok已开仓，勿重复开")
@@ -42,7 +42,7 @@ func (s *service) OpenPosMarket(symbol, size, side string) (msg string) {
 	}
 	return s.TradeMarket(symbol, size, side, "open")
 }
-func (s *service) ClosePosMarket(askPrc float64, bidPrc float64) (msg string) {
+func (s *Service) ClosePosMarket(askPrc float64, bidPrc float64) (msg string) {
 	if s.openOrder == nil || s.openOrder.State != string(core.FILLED) {
 		feishu.Send("ok receive signal close, but found no open")
 		return "no position to close"
@@ -65,7 +65,7 @@ func (s *service) ClosePosMarket(askPrc float64, bidPrc float64) (msg string) {
 	return s.TradeMarket(symbol, size, side, cex.Close)
 }
 
-func (s *service) ClosePosLimit(price string) (msg string) {
+func (s *Service) ClosePosLimit(price string) (msg string) {
 	// 为开仓或者 开的仓位未成交
 	if s.openOrder == nil || s.openOrder.State != string(core.FILLED) {
 		feishu.Send("ok receive signal close, but found no open")
@@ -84,7 +84,7 @@ func (s *service) ClosePosLimit(price string) (msg string) {
 	return s.TradeLimit(symbol, price, size, side, cex.Close)
 }
 
-func (s *service) TradeMarket(symbol, size, side, posSide string) (msg string) {
+func (s *Service) TradeMarket(symbol, size, side, posSide string) (msg string) {
 	closePos := posSide == cex.Close
 	instId := fmt.Sprintf("%s-USDT", strings.ToUpper(symbol))
 	arg := map[string]interface{}{
@@ -113,15 +113,15 @@ func (s *service) TradeMarket(symbol, size, side, posSide string) (msg string) {
 		return "trigger trade成功, 最终结果见推送数据"
 	}
 }
-func (s *service) TradeLimit(symbol, price, size, side, posSide string) (msg string) {
+func (s *Service) TradeLimit(symbol, price, size, side, posSide string) (msg string) {
 	closePos := posSide == cex.Close
 	instId := fmt.Sprintf("%s-USDT", strings.ToUpper(symbol))
 	arg := map[string]interface{}{
+		"tdMode":     "cross", // 全仓币币， 全仓永续
 		"side":       strings.ToLower(side),
 		"instId":     instId,
 		"sz":         size,
 		"px":         price,
-		"tdMode":     "cross",
 		"ccy":        "USDT",
 		"ordType":    "limit", //market, limit, ioc
 		"reduceOnly": closePos,
@@ -161,7 +161,7 @@ func (s *service) TradeLimit(symbol, price, size, side, posSide string) (msg str
 	}
 }
 
-func (s *service) login() {
+func (s *Service) login() {
 	// login
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
 	message := timestamp + "GET" + "/users/self/verify"

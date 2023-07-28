@@ -6,7 +6,7 @@ import (
 )
 
 // 订单更新
-func (s *service) subscribeOrder() {
+func (s *Service) subscribeOrder() {
 	accountArg := make(map[string]interface{})
 	accountArg["channel"] = "orders"
 	accountArg["instType"] = "MARGIN"

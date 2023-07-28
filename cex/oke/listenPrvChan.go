@@ -8,13 +8,14 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"ws-quant/cex"
 	"ws-quant/cex/models"
 	"ws-quant/core"
 	"ws-quant/pkg/feishu"
 	"ws-quant/pkg/mapper"
 )
 
-func (s *service) connectAndLoginPrivate() {
+func (s *Service) connectAndLoginPrivate() {
 	socketUrl := "wss://ws.okx.com:8443/ws/v5/private"
 	conn, _, err := websocket.DefaultDialer.Dial(socketUrl, nil)
 	if err != nil {
@@ -28,7 +29,7 @@ func (s *service) connectAndLoginPrivate() {
 监听 login事件，触发 订阅余额
 监听 余额变动事件更新usdt余额
 */
-func (s *service) listenAndNotifyPrivate() {
+func (s *Service) listenAndNotifyPrivate() {
 	errCnt := 0
 	for {
 		if s.prvCon == nil {
@@ -143,7 +144,7 @@ func (s *service) listenAndNotifyPrivate() {
 	}
 }
 
-func (s *service) processUpdateOrder(msgBytes []byte) {
+func (s *Service) processUpdateOrder(msgBytes []byte) {
 	val, _ := fastjson.ParseBytes(msgBytes)
 	val = val.Get("data", "0")
 	orderId := string(val.GetStringBytes("ordId"))
@@ -200,7 +201,7 @@ func (s *service) processUpdateOrder(msgBytes []byte) {
 	s.ReloadOrders()
 
 }
-func (s *service) processNewOrder(msgBytes []byte) {
+func (s *Service) processNewOrder(msgBytes []byte) {
 	log.Info("新订单数据:" + string(msgBytes))
 	if fastjson.GetString(msgBytes, "code") == "1" {
 		errMsg := fastjson.GetString(msgBytes, "data", "0", "sMsg")
@@ -216,7 +217,7 @@ func (s *service) processNewOrder(msgBytes []byte) {
 	price := fastjson.GetString(msgBytes, "data", "0", "avgPx")
 
 	orderInsert := &models.Orders{
-		Cex:       s.GetCexName(),
+		Cex:       cex.OKE,
 		Price:     price,
 		OrderType: orderType,
 		PosSide:   posSide,

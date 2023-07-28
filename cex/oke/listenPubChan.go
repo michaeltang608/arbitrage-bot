@@ -8,12 +8,13 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"ws-quant/cex"
 	"ws-quant/common/symb"
 	"ws-quant/models/bean"
 	"ws-quant/pkg/feishu"
 )
 
-func (s *service) connectAndSubscribePublic() {
+func (s *Service) connectAndSubscribePublic() {
 
 	s.connectPublic()
 	s.subscribeTickers()
@@ -23,7 +24,7 @@ func (s *service) connectAndSubscribePublic() {
 }
 
 // 产品交易对，目前无需订阅
-func (s *service) subscribeInstruments() {
+func (s *Service) subscribeInstruments() {
 	// subscribe trade products
 	arg := make(map[string]interface{})
 	arg["channel"] = "instruments"
@@ -42,7 +43,7 @@ func (s *service) subscribeInstruments() {
 	}
 
 }
-func (s *service) subscribeFutures() {
+func (s *Service) subscribeFutures() {
 	var err error
 	argList := make([]map[string]interface{}, 0)
 	for _, symbol_ := range symb.GetAllOkFuture() {
@@ -64,7 +65,7 @@ func (s *service) subscribeFutures() {
 	}
 	log.Info("订阅全部futures数据成功")
 }
-func (s *service) subscribeTickers() {
+func (s *Service) subscribeTickers() {
 	var err error
 	argList := make([]map[string]interface{}, 0)
 	for _, symbol_ := range symb.GetAllSymb() {
@@ -87,7 +88,7 @@ func (s *service) subscribeTickers() {
 	log.Info("订阅全部tickers数据成功")
 
 }
-func (s *service) connectPublic() {
+func (s *Service) connectPublic() {
 	// 可能会重连
 	s.pubConLock.Lock()
 	defer s.pubConLock.Unlock()
@@ -113,7 +114,7 @@ func (s *service) connectPublic() {
 	log.Info("连接pubCon 成功，开始监听消息了")
 }
 
-func (s *service) listenAndNotifyPublic() {
+func (s *Service) listenAndNotifyPublic() {
 	errCnt := 0
 	for {
 		if s.pubCon == nil {
@@ -162,7 +163,7 @@ func (s *service) listenAndNotifyPublic() {
 			for _, symbol_ := range symb.GetAllSymb() {
 				if strings.ToUpper(symbol_) == strings.ToUpper(symbolStr) {
 					tickerBean := bean.TickerBean{
-						CexName:      s.GetCexName(),
+						CexName:      cex.OKE,
 						InstId:       instId,
 						SymbolName:   symbol_,
 						Price:        priceFloat,

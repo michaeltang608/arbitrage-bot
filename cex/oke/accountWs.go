@@ -5,18 +5,18 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func (s *service) MarginBalance() float64 {
+func (s *Service) MarginBalance() float64 {
 	return s.usdtBal
 }
 
 // 暂时用不到
-func (s *service) subscribeAccount() {
+func (s *Service) subscribeAccount() {
 	s.doSubscribe("account")
 
 }
 
 // 订阅仓位信息，更清楚地了解，目前该还的债务，用于平仓
-func (s *service) subscribePosition() {
+func (s *Service) subscribePosition() {
 	err := s.doSubscribeV2(map[string]interface{}{
 		"channel":  "positions",
 		"instType": "MARGIN",
@@ -28,11 +28,11 @@ func (s *service) subscribePosition() {
 	}
 
 }
-func (s *service) subscribeBalanceAndPos() {
+func (s *Service) subscribeBalanceAndPos() {
 	s.doSubscribe("balance_and_position")
 }
 
-func (s *service) doSubscribe(channelName string) {
+func (s *Service) doSubscribe(channelName string) {
 	accountArg := make(map[string]interface{})
 	accountArg["channel"] = channelName
 
@@ -52,7 +52,7 @@ func (s *service) doSubscribe(channelName string) {
 
 }
 
-func (s *service) doSubscribeV2(arg map[string]interface{}) error {
+func (s *Service) doSubscribeV2(arg map[string]interface{}) error {
 	accountReq := Req{
 		Op: "subscribe",
 		Args: []map[string]interface{}{
