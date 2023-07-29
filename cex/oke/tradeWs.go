@@ -113,9 +113,10 @@ func (s *Service) TradeMarket(symbol, size, side, posSide string) (msg string) {
 		return "trigger trade成功, 最终结果见推送数据"
 	}
 }
-func (s *Service) TradeLimit(symbol, price, size, side, posSide string) (msg string) {
+
+// TradeLimit instId: EOS-USDT, EOS-USDT-SWAP是合约
+func (s *Service) TradeLimit(instId, price, size, side, posSide string) (msg string) {
 	closePos := posSide == cex.Close
-	instId := fmt.Sprintf("%s-USDT", strings.ToUpper(symbol))
 	arg := map[string]interface{}{
 		"tdMode":     "cross", // 全仓币币， 全仓永续
 		"side":       strings.ToLower(side),

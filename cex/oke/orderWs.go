@@ -9,7 +9,7 @@ import (
 func (s *Service) subscribeOrder() {
 	accountArg := make(map[string]interface{})
 	accountArg["channel"] = "orders"
-	accountArg["instType"] = "MARGIN"
+	accountArg["instType"] = "ANY"
 	//accountArg["ccy"] = "usdt"
 
 	accountReq := Req{

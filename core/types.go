@@ -22,7 +22,7 @@ const (
 )
 
 type OrderReq struct {
-	Symbol  string `json:"symbol"`
+	InstId  string `json:"instId"`
 	Price   string `json:"price"`
 	Size    string `json:"size"`
 	Side    string `json:"side"`

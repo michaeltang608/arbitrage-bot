@@ -83,27 +83,8 @@ func (s *Service) listenAndNotifyPrivate() {
 		// 3 收到balance数据
 		if fastjson.GetString(msgBytes, "arg", "channel") == "balance_and_position" {
 			// 解析 余额map
-			val, _ := fastjson.ParseBytes(msgBytes)
-			data := val.Get("data")
-			dataAry, _ := data.Array()
-			dataFirst := dataAry[0]
+			s.processBalance(msgBytes)
 
-			//log.Info("余额变动的事件类型是: %v\n", string(dataFirst.GetStringBytes("eventType")))
-			log.Info("收到余额数据：%v", msg)
-			balData := dataFirst.Get("balData")
-			balDataAry, _ := balData.Array()
-			for _, balDataEle := range balDataAry {
-				cashBal := balDataEle.GetStringBytes("cashBal")
-				cashBalFloat, _ := strconv.ParseFloat(string(cashBal), 64)
-				ccy := string(balDataEle.GetStringBytes("ccy"))
-				if cashBalFloat >= 0.001 {
-					log.Info("余额更新ccy=%v, cashBal: %v\n", ccy, cashBalFloat)
-				}
-				if strings.ToLower(ccy) == "usdt" {
-					s.usdtBal = cashBalFloat
-					log.Info("oke的usdt最新余额是%v\n", cashBalFloat)
-				}
-			}
 			continue
 		}
 
@@ -259,3 +240,27 @@ func (s *Service) processNewOrder(msgBytes []byte) {
 //		_ = mapper.UpdateById(s.db, id, updateEle)
 //	}
 //}
+
+func (s *Service) processBalance(msgBytes []byte) {
+	val, _ := fastjson.ParseBytes(msgBytes)
+	data := val.Get("data")
+	dataAry, _ := data.Array()
+	dataFirst := dataAry[0]
+
+	//log.Info("余额变动的事件类型是: %v\n", string(dataFirst.GetStringBytes("eventType")))
+	log.Info("收到余额数据：%v", string(msgBytes))
+	balData := dataFirst.Get("balData")
+	balDataAry, _ := balData.Array()
+	for _, balDataEle := range balDataAry {
+		cashBal := balDataEle.GetStringBytes("cashBal")
+		cashBalFloat, _ := strconv.ParseFloat(string(cashBal), 64)
+		ccy := string(balDataEle.GetStringBytes("ccy"))
+		if cashBalFloat >= 0.001 {
+			log.Info("余额更新ccy=%v, cashBal: %v\n", ccy, cashBalFloat)
+		}
+		if strings.ToLower(ccy) == "usdt" {
+			s.usdtBal = cashBalFloat
+			log.Info("oke的usdt最新余额是%v\n", cashBalFloat)
+		}
+	}
+}
