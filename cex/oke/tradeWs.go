@@ -8,8 +8,10 @@ import (
 	"strings"
 	"time"
 	"ws-quant/cex"
+	"ws-quant/cex/models"
 	"ws-quant/core"
 	"ws-quant/pkg/feishu"
+	"ws-quant/pkg/mapper"
 	"ws-quant/pkg/util"
 )
 
@@ -138,20 +140,20 @@ func (s *Service) TradeLimit(instId, price, size, side, posSide string) (msg str
 	reqBytes, _ := json.Marshal(req)
 	log.Info("准备下单信息:%v\n", string(reqBytes))
 
-	//order := &models.Orders{
-	//	InstId:  instId,
-	//	Cex:     s.GetCexName(),
-	//	Price:   price,
-	//	Size:    size,
-	//	Side:    side,
-	//	PosSide: posSide,
-	//	State:   string(core.TRIGGER),
-	//	OrderId: "",
-	//	Closed:  "N",
-	//	Created: time.Now(),
-	//	Updated: time.Now(),
-	//}
-	//_ = mapper.Insert(s.db, order)
+	order := &models.Orders{
+		InstId:  instId,
+		Cex:     cex.OKE,
+		Price:   price,
+		Size:    size,
+		Side:    side,
+		PosSide: posSide,
+		State:   string(core.TRIGGER),
+		OrderId: "",
+		Closed:  "N",
+		Created: time.Now(),
+		Updated: time.Now(),
+	}
+	_ = mapper.Insert(s.db, order)
 
 	//s.ReloadOrders()
 	err := s.prvCon.WriteMessage(websocket.TextMessage, reqBytes)

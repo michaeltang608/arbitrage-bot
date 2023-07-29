@@ -14,8 +14,8 @@ func (bs *backendServer) scheduleJobs() {
 	//每隔1h 清零一次并通知
 	_, _ = c.AddFunc("0/2 * * * *", func() {
 		//feishu.Send(fmt.Sprintf("前1h的 max是%.2f ", bs.curMax))
-		maxOkMarginFutureDiff := fmt.Sprintf("%.2f", bs.curMaxMarginFuture)
-		if bs.curMaxMarginFuture >= 1.0 {
+		maxOkMarginFutureDiff := fmt.Sprintf("%.2f", bs.maxDiffMarginFuture)
+		if bs.maxDiffMarginFuture >= 1.0 {
 			m := &models.Oppor{
 				InstId:  "okMarginFuture",
 				Cex:     "ok",
@@ -26,12 +26,10 @@ func (bs *backendServer) scheduleJobs() {
 			if err != nil {
 				log.Error("insert err=", err)
 			}
-			feishu.Send(fmt.Sprintf("前2m的 margin/future max是%.2f ", bs.curMaxMarginFuture))
+			feishu.Send(fmt.Sprintf("前2m的 margin/future max是%.2f ", bs.maxDiffMarginFuture))
 
 		}
-
-		bs.curMax = 0.0
-		bs.curMaxMarginFuture = 0.0
+		bs.maxDiffMarginFuture = 0.0
 
 	})
 	c.Start()

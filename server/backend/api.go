@@ -78,16 +78,3 @@ func (bs *backendServer) persistBalance(type_ string) {
 //	gintool.SucMsg(cxt, msg)
 //	return
 //}
-
-func (bs *backendServer) getCurPrice(symbol string, cex string) float64 {
-	for symbol_, m := range bs.TickerDataMap {
-		if symbol == symbol_ {
-			for cex_, bean := range m {
-				if cex == cex_ {
-					return bean.Price
-				}
-			}
-		}
-	}
-	return 0
-}

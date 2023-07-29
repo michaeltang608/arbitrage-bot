@@ -1,15 +1,16 @@
 package bean
 
 type TickerBean struct {
-	CexName      string
-	SymbolName   string
-	InstId       string
-	PriceBestAsk float64
-	Price        float64
-	PriceBestBid float64
-	Ts0          int64
+	CexName      string  //暂时保留，以便拓展的复用
+	SymbolName   string  //统一大写，如 EOS, BTC
+	InstId       string  //以是否 SWAP结尾判断是否是永续
+	PriceBestAsk float64 // 价格 上
+	Price        float64 // 价格 中
+	PriceBestBid float64 // 价格 下
+	Ts0          int64   // 接受的时间
 }
 
+// Ticker 此 ticker结构体主要是追踪长期未更新的 instId
 type Ticker struct {
 	PriceBestAsk float64
 	Price        float64
