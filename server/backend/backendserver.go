@@ -20,6 +20,8 @@ import (
 	"ws-quant/pkg/mapper"
 	"ws-quant/pkg/middleware"
 	"ws-quant/pkg/router"
+	"ws-quant/pkg/util"
+	"ws-quant/pkg/util/numutil"
 	"ws-quant/server"
 	"xorm.io/xorm"
 )
@@ -27,6 +29,7 @@ import (
 var log = logger.NewLog("backend")
 
 type MarginFutureTicker struct {
+	Symbol    string
 	AskMargin float64
 	BidMargin float64
 	AskFuture float64
@@ -139,11 +142,20 @@ func (bs *backendServer) listenAndCal() {
 				continue
 			}
 
-			_, curDiff := bs.realDiff(ticker)
+			openSignal, curDiff := bs.realDiff(ticker)
 			if bs.maxDiffMarginFuture < curDiff {
 				bs.maxDiffMarginFuture = curDiff
 				log.Info("curMaxMarginFuture=%v, symbol=%v\n", bs.maxDiffMarginFuture, tickerBean.SymbolName)
 			}
+			//todo 策略执行 open position
+			if openSignal != 0 {
+				if atomic.CompareAndSwapInt32(&bs.strategyState, 0, 1) {
+					bs.execOpenLimit(openSignal, ticker)
+					//log.Info("执行后的延迟是:%d毫秒", time.Now().UnixMilli()-signalCalBean.Ts0)
+				}
+			}
+
+			// close position
 			//if bs.strategyState == int32(StateOpenFilledAll) {
 			//	if strings.ToUpper(symbol) == strings.ToUpper(bs.executingSymbol) {
 			//		if bs.shouldClose(prcList) {
@@ -152,13 +164,6 @@ func (bs *backendServer) listenAndCal() {
 			//
 			//			}
 			//		}
-			//	}
-			//}
-			//if openSignal != 0 {
-			//	log.Info("达到条件延迟是:%d毫秒, symbol=%v", time.Now().UnixMilli()-signalCalBean.Ts0, symbol)
-			//	if atomic.CompareAndSwapInt32(&bs.strategyState, 0, 1) {
-			//		bs.execOpenLimit(openSignal, prcList, symbol)
-			//		log.Info("执行后的延迟是:%d毫秒", time.Now().UnixMilli()-signalCalBean.Ts0)
 			//	}
 			//}
 
@@ -289,7 +294,7 @@ func (bs *backendServer) initMap() {
 	// init okex margin-future map，第一个idx存储
 	bs.OkMarginFutureMap = make(map[string]*MarginFutureTicker)
 	for _, sym := range symb.GetAllOkFuture() {
-		bs.OkMarginFutureMap[sym] = new(MarginFutureTicker)
+		bs.OkMarginFutureMap[sym] = &MarginFutureTicker{Symbol: sym}
 	}
 
 	// 初始化 chan
@@ -419,47 +424,69 @@ func (bs *backendServer) PostInit() {
 //	}
 //	feishu.Send("strategy open triggered")
 //}
-//func (bs *backendServer) execOpenLimit(openSignal int, prcList []float64, symbol string) {
-//	feishu.Send(fmt.Sprintf("trigger&exec open limit strategy, symb=%sA, sig=%v, prcs: %v, %v, %v, %v", symbol, openSignal, prcList[0], prcList[1], prcList[2], prcList[3]))
-//	bs.executingSymbol = symbol
-//	log.Info("signalOpen, strategyState=%v", bs.strategyState)
-//
-//	for cexName, cexService := range bs.cexServiceMap {
-//
-//		go func(cexName string, service cex.Service) {
-//			priceF := 0.0
-//			size := util.NumTrunc(bs.config.TradeAmt / prcList[0])
-//			if cexName == cex.KUCOIN {
-//				side := "buy"
-//				priceF = prcList[0]
-//				if openSignal > 0 {
-//					side = "sell"
-//					priceF = prcList[1]
-//				}
-//				price := util.AdjustPrice(priceF, side)
-//				log.Info("ku limit 准备开仓, side=%v, symbol=%v, price=%v, size=%v\n", side, symbol, price, size)
-//				msg := service.OpenPosLimit(symbol, price, size, side)
-//				log.Info("ku limit开仓结果是:" + msg)
-//
-//			} else if cexName == cex.OKE {
-//
-//				side := "sell"
-//				priceF = prcList[3]
-//				if openSignal > 0 {
-//					// 以市价买入时，指计价货币的数量
-//					side = "buy"
-//					priceF = prcList[2]
-//				}
-//				price := util.AdjustPrice(priceF, side)
-//				log.Info("准备开仓, side=%v, symbol=%v, price=%v, size=%v\n", side, symbol, price, size)
-//				msg := service.OpenPosLimit(symbol, price, size, side)
-//				log.Info("开仓结果是:" + msg)
-//			}
-//
-//		}(cexName, cexService)
-//	}
-//	feishu.Send("strategy open triggered")
-//}
+func (bs *backendServer) execOpenLimit(openSignal int, t *MarginFutureTicker) {
+	msg := fmt.Sprintf("trigger&exec open limit strategy,ticker= %+v", t)
+	feishu.Send(msg)
+	log.Info(msg)
+	bs.executingSymbol = t.Symbol
+	log.Info("signalOpen, strategyState=%v", bs.strategyState)
+
+	// 先处理 margin, 再处理 future
+	// 计算size
+	symbolPrc := t.AskFuture
+	numPerUnit := symb.GetFutureLot(t.Symbol)
+	if numPerUnit == "" {
+		log.Error("未找到该future 的unitNum, %v", t.Symbol)
+		feishu.Send("未找到该future 的unitNum")
+		return
+	}
+
+	tradeAmt, futureSize := calFutureSizeAndTradeAmt(bs.config.TradeAmt, symbolPrc, numutil.Parse(numPerUnit))
+	go func(tradeAmt float64) {
+		// margin
+		priceF := 0.0
+		size := util.NumTrunc(tradeAmt / t.AskFuture)
+		side := "buy"
+		priceF = t.AskMargin
+		if openSignal > 0 {
+			side = "sell"
+			priceF = t.BidMargin
+		}
+		price := util.AdjustPrice(priceF, side)
+		log.Info("ok margin prepare open pos, side=%v, symbol=%v, price=%v, size=%v\n", side, t.Symbol, price, size)
+		msg := bs.okeService.OpenPosLimit(t.Symbol, price, size, side)
+		log.Info("ok margin-open pos result:" + msg)
+	}(tradeAmt)
+	go func(size int) {
+		// future
+		side := "sell"
+		priceF := t.BidFuture
+		if openSignal > 0 {
+			side = "buy"
+			priceF = t.AskFuture
+		}
+		price := util.AdjustPrice(priceF, side)
+		log.Info("prepare to open pos, side=%v, symbol=%v, price=%v, size=%v\n", side, t.Symbol, price, size)
+		msg := bs.okeService.OpenPosLimit(t.Symbol, price, numutil.FormatInt(size), side)
+		log.Info("ok future open-pos result:" + msg)
+
+	}(futureSize)
+	feishu.Send("strategy open triggered")
+}
+
+func calFutureSizeAndTradeAmt(planTradeAmt, symbolPrc, numPerUnit float64) (actualTradeAmt float64, futureSize int) {
+	//1 cal can buy sym num
+	symNum := planTradeAmt / symbolPrc
+	unitNum := symNum / numPerUnit
+	futureSize = int(unitNum)
+	if futureSize == 0 {
+		futureSize = 1
+	}
+	//计算 actualAmtT
+	actualSymNum := numPerUnit * float64(futureSize)
+	actualTradeAmt = actualSymNum * symbolPrc
+	return actualTradeAmt, futureSize
+}
 
 //func (bs *backendServer) execCloseMarket(prcList []float64, symbol string) {
 //	feishu.Send(fmt.Sprintf("trigger&exec close market strategy, symb=%sA, prcs: %v, %v, %v,%v", symbol, prcList[0], prcList[1], prcList[2], prcList[3]))
