@@ -161,11 +161,12 @@ func (s *Service) listenAndNotifyPublic() {
 			priceBestBidFloat, _ := strconv.ParseFloat(bestBid, 64)
 
 			for _, symbol_ := range symb.GetAllOkFuture() {
-				if strings.ToUpper(symbol_) == strings.ToUpper(symbolStr) {
+				symbol := strings.ToUpper(symbol_)
+				if symbol == strings.ToUpper(symbolStr) {
 					tickerBean := bean.TickerBean{
 						CexName:      cex.OKE,
 						InstId:       instId,
-						SymbolName:   symbol_,
+						SymbolName:   symbol,
 						Price:        priceFloat,
 						PriceBestBid: priceBestBidFloat,
 						PriceBestAsk: priceBeatAskFloat,

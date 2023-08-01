@@ -146,6 +146,7 @@ func (s *Service) processUpdateOrder(msgBytes []byte) {
 		return
 	}
 	orderDb := orderList[0]
+	orderType := orderDb.OrderType
 	log.Info("找到数据库数据开始更新订单状态, orderId=%v\n", orderId)
 	isCanceled := state == core.CANCELED.State()
 	closed := "N"
@@ -161,11 +162,12 @@ func (s *Service) processUpdateOrder(msgBytes []byte) {
 		log.Info("该次策略完成")
 		closed = "Y"
 		// 同时也 close 开仓
-		if s.openOrder == nil {
+		openOrder := s.GetOpenOrder(orderType)
+		if openOrder == nil {
 			log.Error("找不到开仓订单")
 		} else {
 			updateOpen := &models.Orders{Closed: "Y", Updated: time.Now()}
-			_ = mapper.UpdateById(s.db, s.openOrder.ID, updateOpen)
+			_ = mapper.UpdateById(s.db, openOrder.ID, updateOpen)
 			log.Info("close掉开仓订单")
 		}
 	}

@@ -151,21 +151,19 @@ func (bs *backendServer) listenAndCal() {
 			if openSignal != 0 {
 				if atomic.CompareAndSwapInt32(&bs.strategyState, 0, 1) {
 					bs.execOpenLimit(openSignal, ticker)
-					//log.Info("执行后的延迟是:%d毫秒", time.Now().UnixMilli()-signalCalBean.Ts0)
 				}
 			}
 
-			//todo close position
-			//if bs.strategyState == int32(StateOpenFilledAll) {
-			//	if strings.ToUpper(symbol) == strings.ToUpper(bs.executingSymbol) {
-			//		if bs.shouldClose(prcList) {
-			//			if atomic.CompareAndSwapInt32(&bs.strategyState, int32(StateOpenFilledAll), int32(StateCloseSignalled)) {
-			//				bs.execCloseMarket(prcList, symbol)
-			//
-			//			}
-			//		}
-			//	}
-			//}
+			// close position
+			if bs.strategyState == int32(StateOpenFilledAll) {
+				if strings.ToUpper(ticker.Symbol) == strings.ToUpper(bs.executingSymbol) {
+					if bs.shouldClose(ticker) {
+						if atomic.CompareAndSwapInt32(&bs.strategyState, int32(StateOpenFilledAll), int32(StateCloseSignalled)) {
+							bs.execCloseMarket(ticker)
+						}
+					}
+				}
+			}
 
 			if bs.config.LogTicker == LogOke && tickerBean.CexName == cex.OKE {
 				log.Info("收到ticker数据，%+v", tickerBean)
@@ -175,11 +173,8 @@ func (bs *backendServer) listenAndCal() {
 }
 
 // 0 不开，1 max ku sell, -1 min ku buy
-func (bs *backendServer) shouldClose(prices []float64) bool {
-	kuAsk := prices[0]
-	kuBid := prices[1]
-	oke_ := prices[2]
-	return oke_ >= kuBid && oke_ <= kuAsk
+func (bs *backendServer) shouldClose(t *MarginFutureTicker) bool {
+	return t.AskFuture >= t.BidMargin && t.AskFuture <= t.AskMargin
 }
 
 func (bs *backendServer) realDiff(t *MarginFutureTicker) (signal int, realDiffPct float64) {
@@ -304,24 +299,13 @@ func (bs *backendServer) initMap() {
 }
 
 func (bs *backendServer) PostInit() {
-	//更新 strategyState， prepare close symb
+	//todo 修改此处逻辑更新 strategyState， prepare close symb
 	go func() {
 		defer e.Recover()()
 		time.Sleep(time.Second * 5)
 		closeOrders := make([]*models.Orders, 0)
 		openOrders := make([]*models.Orders, 0)
-		//
-		//for _, s := range bs.cexServiceMap {
-		//	if s.GetOpenOrder() != nil {
-		//		log.Info("openOrder:%v", s.GetOpenOrder())
-		//		openOrders = append(openOrders, s.GetOpenOrder())
-		//		bs.executingSymbol = strings.ToLower(strings.Split(s.GetOpenOrder().InstId, "-")[0])
-		//	}
-		//	if s.GetCloseOrder() != nil {
-		//		log.Info("closeOrder:%v", s.GetCloseOrder())
-		//		closeOrders = append(closeOrders, s.GetCloseOrder())
-		//	}
-		//}
+
 		if len(closeOrders) > 0 {
 			bs.strategyState = int32(StateCloseSignalled)
 			for _, closeOrder := range closeOrders {
@@ -347,83 +331,6 @@ func (bs *backendServer) PostInit() {
 
 }
 
-/**
-1 这种方式经常拿不到最好的价格，
-2 而且考虑到kucoin borrow经常失败，开单的话要先执行kucoin, 成功后再执行oke 这样就延误了战机
-*/
-//func (bs *backendServer) execOpenMarket(openSignal int, prcList []float64, symbol string) {
-//	feishu.Send(fmt.Sprintf("trigger&exec open market strategy, symb=%sA, sig=%v, prcs: %v, %v, %v, %v", symbol, openSignal, prcList[0], prcList[1], prcList[2], prcList[3]))
-//	bs.executingSymbol = symbol
-//	log.Info("signalOpen, strategyState=%v", bs.strategyState)
-//	if openSignal == 1 {
-//		// sell kucoin first, then buy oke upon filled signal
-//		for cexName, cexService := range bs.cexServiceMap {
-//			go func(cexName string, service cex.Service) {
-//				size := util.NumTrunc(bs.config.TradeAmt / prcList[0])
-//				if cexName == cex.KUCOIN {
-//					side := "sell"
-//					log.Info("ku准备开仓, side=%v, symbol=%v,  size=%v\n", side, symbol, size)
-//					msg := service.OpenPosMarket(symbol, size, side)
-//					log.Info("ku开仓结果是:" + msg)
-//				} else if cexName == cex.OKE {
-//					/**
-//					sz
-//					交易数量，表示要购买或者出售的数量。
-//					当币币/币币杠杆以限价买入和卖出时，指交易货币数量。
-//					* 当币币/币币杠杆以市价买入时，指计价货币的数量。*
-//					当币币/币币杠杆以市价卖出时，指交易货币的数量。
-//					*/
-//					// 以市价买入时，指计价货币的数量
-//					side := "buy"
-//					size = util.NumTrunc(bs.config.TradeAmt)
-//					log.Info("okeLog 准备一步开仓, side=%v, symbol=%v, size=%v\n", side, symbol, size)
-//					bs.okOpenBuyMarketFunc = func() {
-//						msg := service.OpenPosMarket(symbol, size, side)
-//						log.Info("okeLog 开仓结果是:" + msg)
-//					}
-//				}
-//
-//			}(cexName, cexService)
-//		}
-//		return
-//	}
-//
-//	//concurrent exec
-//	for cexName, cexService := range bs.cexServiceMap {
-//		go func(cexName string, service cex.Service) {
-//			size := util.NumTrunc(bs.config.TradeAmt / prcList[0])
-//			if cexName == cex.KUCOIN {
-//				side := "buy"
-//				if openSignal > 0 {
-//					side = "sell"
-//				}
-//				log.Info("ku准备开仓, side=%v, symbol=%v,  size=%v\n", side, symbol, size)
-//				msg := service.OpenPosMarket(symbol, size, side)
-//				log.Info("ku开仓结果是:" + msg)
-//			} else if cexName == cex.OKE {
-//				/**
-//				sz
-//				交易数量，表示要购买或者出售的数量。
-//				当币币/币币杠杆以限价买入和卖出时，指交易货币数量。
-//				* 当币币/币币杠杆以市价买入时，指计价货币的数量。*
-//				当币币/币币杠杆以市价卖出时，指交易货币的数量。
-//				*/
-//
-//				side := "sell"
-//				if openSignal > 0 {
-//					// 以市价买入时，指计价货币的数量
-//					side = "buy"
-//					size = util.NumTrunc(bs.config.TradeAmt)
-//				}
-//				log.Info("okeLog 准备开仓, side=%v, symbol=%v, size=%v\n", side, symbol, size)
-//				msg := service.OpenPosMarket(symbol, size, side)
-//				log.Info("okeLog 开仓结果是:" + msg)
-//			}
-//
-//		}(cexName, cexService)
-//	}
-//	feishu.Send("strategy open triggered")
-//}
 func (bs *backendServer) execOpenLimit(openSignal int, t *MarginFutureTicker) {
 	msg := fmt.Sprintf("trigger&exec open limit strategy,ticker= %+v", t)
 	feishu.Send(msg)
@@ -454,7 +361,7 @@ func (bs *backendServer) execOpenLimit(openSignal int, t *MarginFutureTicker) {
 		}
 		price := util.AdjustPrice(priceF, side)
 		log.Info("ok margin prepare open pos, side=%v, symbol=%v, price=%v, size=%v\n", side, t.Symbol, price, size)
-		msg := bs.okeService.OpenPosLimit(t.Symbol, price, size, side)
+		msg := bs.okeService.OpenMarginLimit(t.Symbol, price, size, side)
 		log.Info("ok margin-open pos result:" + msg)
 	}(tradeAmt)
 	go func(size int) {
@@ -467,7 +374,7 @@ func (bs *backendServer) execOpenLimit(openSignal int, t *MarginFutureTicker) {
 		}
 		price := util.AdjustPrice(priceF, side)
 		log.Info("prepare to open pos, side=%v, symbol=%v, price=%v, size=%v\n", side, t.Symbol, price, size)
-		msg := bs.okeService.OpenPosLimit(t.Symbol, price, numutil.FormatInt(size), side)
+		msg := bs.okeService.OpenFutureLimit(t.Symbol, price, numutil.FormatInt(size), side)
 		log.Info("ok future open-pos result:" + msg)
 
 	}(futureSize)
@@ -488,23 +395,24 @@ func calFutureSizeAndTradeAmt(planTradeAmt, symbolPrc, numPerUnit float64) (actu
 	return actualTradeAmt, futureSize
 }
 
-//func (bs *backendServer) execCloseMarket(prcList []float64, symbol string) {
-//	feishu.Send(fmt.Sprintf("trigger&exec close market strategy, symb=%sA, prcs: %v, %v, %v,%v", symbol, prcList[0], prcList[1], prcList[2], prcList[3]))
-//	log.Info("signal close, strategyState=%v", bs.strategyState)
-//	for cexName, service_ := range bs.cexServiceMap {
-//		go func(cexName string, service cex.Service, prcList []float64) {
-//			if cexName == cex.KUCOIN {
-//				log.Info("kucoinLog 执行关仓， market")
-//				msg := service.ClosePosMarket(prcList[0], prcList[1])
-//				log.Info("kucoinLog 关仓结果是:" + msg)
-//			} else if cexName == cex.OKE {
-//				log.Info("okeLog 执行关仓， market")
-//				msg := service.ClosePosMarket(prcList[2], prcList[3])
-//				log.Info("okeLog 关仓结果是:" + msg)
-//			}
-//
-//		}(cexName, service_, prcList)
-//	}
-//}
+func (bs *backendServer) execCloseMarket(t *MarginFutureTicker) {
+	feishu.Send(fmt.Sprintf("trigger&exec close market strategy, symb=%sA", t.Symbol))
+	log.Info("signal close, strategyState=%v", bs.strategyState)
+	//todo 调用 closeMargin/futureMarket
+	//for cexName, service_ := range bs.cexServiceMap {
+	//	go func(cexName string, service cex.Service, prcList []float64) {
+	//		if cexName == cex.KUCOIN {
+	//			log.Info("kucoinLog 执行关仓， market")
+	//			msg := service.ClosePosMarket(prcList[0], prcList[1])
+	//			log.Info("kucoinLog 关仓结果是:" + msg)
+	//		} else if cexName == cex.OKE {
+	//			log.Info("okeLog 执行关仓， market")
+	//			msg := service.ClosePosMarket(prcList[2], prcList[3])
+	//			log.Info("okeLog 关仓结果是:" + msg)
+	//		}
+	//
+	//	}(cexName, service_, prcList)
+	//}
+}
 
 // seek arbitrage oppor between oke margin and future(perpetual)

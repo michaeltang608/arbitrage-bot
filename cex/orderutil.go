@@ -2,36 +2,34 @@ package cex
 
 import (
 	"ws-quant/cex/models"
+	"ws-quant/common/consts"
+	"ws-quant/pkg/feishu"
 	"ws-quant/pkg/mapper"
 	"xorm.io/xorm"
 )
 
-func QueryOpenCloseOrders(db *xorm.Engine, cexName string) (openOrder, closeOrder *models.Orders) {
-	openOrder = reloadOpen(db, cexName)
-	closeOrder = reloadClose(db, cexName)
-	return openOrder, closeOrder
-}
+func QueryOpenCloseOrders(db *xorm.Engine) (openOrders, closeOrders []*models.Orders) {
 
-func reloadOpen(db *xorm.Engine, cexName string) *models.Orders {
-	// check and load open order
-	openOrder := new(models.Orders)
-	has := mapper.GetByWhere(db, openOrder, "cex= ? and closed = ? and pos_side= ?",
-		[]interface{}{cexName, "N", "open"}...)
-	if has {
-		return openOrder
-	} else {
-		return nil
+	orders := make([]*models.Orders, 0)
+	openOrders = make([]*models.Orders, 0)
+	closeOrders = make([]*models.Orders, 0)
+	mapper.Find(db, &orders, &models.Orders{Closed: "N"})
+	if len(orders) >= 4 {
+		feishu.Send("orders exceed 4, plz check")
+		return
+	}
+	for _, o := range orders {
+		if o.PosSide == consts.Open {
+			openOrders = append(openOrders, o)
+		}
+		if o.PosSide == consts.Close {
+			openOrders = append(closeOrders, o)
+		}
 	}
 
-}
-func reloadClose(db *xorm.Engine, cexName string) *models.Orders {
-	// check and load close order
-	closeOrder := new(models.Orders)
-	has := mapper.GetByWhere(db, closeOrder, "cex= ? and closed = ? and pos_side= ?",
-		[]interface{}{cexName, "N", "close"}...)
-	if has {
-		return closeOrder
-	} else {
-		return nil
+	if len(openOrders) > 2 || len(closeOrders) > 1 {
+		feishu.Send("open orders num or close orders num abnormal, plz check")
+		return
 	}
+	return openOrders, closeOrders
 }

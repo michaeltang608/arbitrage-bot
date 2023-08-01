@@ -5,9 +5,9 @@ import (
 	"sync"
 	"ws-quant/cex"
 	"ws-quant/cex/models"
+	"ws-quant/common/consts"
 	"ws-quant/models/bean"
 	"ws-quant/pkg/e"
-	"ws-quant/pkg/feishu"
 	logger "ws-quant/pkg/log"
 	"xorm.io/xorm"
 )
@@ -28,11 +28,13 @@ type Service struct {
 	execStateChan chan bean.ExecState
 	//strategyExecOrdersChan chan *models.Orders
 
-	usdtBal    float64 //余额
-	openOrder  *models.Orders
-	closeOrder *models.Orders
-	db         *xorm.Engine
-	debtMsgMap map[string]string
+	usdtBal          float64 //余额
+	openMarginOrder  *models.Orders
+	openFutureOrder  *models.Orders
+	closeMarginOrder *models.Orders
+	closeFutureOrder *models.Orders
+	db               *xorm.Engine
+	debtMsgMap       map[string]string
 }
 
 func New(tickerChan chan bean.TickerBean, execStateChan chan bean.ExecState,
@@ -45,37 +47,42 @@ func New(tickerChan chan bean.TickerBean, execStateChan chan bean.ExecState,
 	}
 
 	s.ReloadOrders()
-	if s.openOrder != nil {
-		log.Info("实例化成功，find openPos")
-		feishu.Send("实例化成功，find openPos")
-	}
-	if s.closeOrder != nil {
-		log.Info("实例化成功，find closePos")
-		feishu.Send("实例化成功，find closePos")
-	}
 	return s
 }
 
-func (s *Service) GetOpenOrder() *models.Orders {
-	return s.openOrder
-}
-func (s *Service) GetCloseOrder() *models.Orders {
-	return s.closeOrder
+func (s *Service) GetOpenOrder(orderType string) *models.Orders {
+	if orderType == consts.Margin {
+		return s.openMarginOrder
+	}
+	return s.openFutureOrder
 }
 
-func (s *Service) SignalCloseLimit(price string) bool {
-	go func() {
-		log.Info("执行关仓， price=" + price)
-		msg := s.ClosePosLimit(price)
-		log.Info("关仓结果是:" + msg)
-	}()
-	return true
+func (s *Service) GetCloseOrder(orderType string) *models.Orders {
+	if orderType == consts.Margin {
+		return s.closeMarginOrder
+	}
+	return s.closeFutureOrder
 }
 
 func (s *Service) ReloadOrders() {
-	openOrder, closeOrder := cex.QueryOpenCloseOrders(s.db, cex.OKE)
-	s.openOrder = openOrder
-	s.closeOrder = closeOrder
+	openOrders, closeOrders := cex.QueryOpenCloseOrders(s.db)
+	for _, o := range openOrders {
+		if o.OrderType == consts.Margin {
+			s.openMarginOrder = o
+		}
+		if o.OrderType == consts.Future {
+			s.openFutureOrder = o
+		}
+	}
+
+	for _, o := range closeOrders {
+		if o.OrderType == consts.Margin {
+			s.closeMarginOrder = o
+		}
+		if o.OrderType == consts.Future {
+			s.closeFutureOrder = o
+		}
+	}
 }
 
 func (s *Service) Run() {

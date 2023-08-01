@@ -37,6 +37,14 @@ func FindLast(s *xorm.Engine, list interface{}, condBean interface{}) (err error
 	return err
 }
 
+func Find(s *xorm.Engine, list interface{}, condBean interface{}) {
+	err := s.Limit(10).Desc("id").Find(list, condBean)
+	if err != nil {
+		log.Panic("数据库操作失败", "具体原因", err)
+		feishu.Send("数据库查询失败")
+	}
+}
+
 func FindPage(s *xorm.Engine, list interface{}, where string, pager *gintool.Pager, args ...interface{}) (err error) {
 	session := s.NewSession()
 	if len(strings.TrimSpace(where)) > 0 {
