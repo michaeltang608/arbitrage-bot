@@ -8,6 +8,7 @@ type Orders struct {
 	Cex        string    `json:"cex" xorm:"notnull default '' Varchar(30) comment('cex')"`
 	Price      string    `json:"price" xorm:"notnull default '' Varchar(30) comment('limit 价格')"`
 	Size       string    `json:"size" xorm:"notnull default '' Varchar(30) comment('开仓量')"`
+	NumPerSize string    `json:"numPerSize" xorm:"notnull default '' Varchar(30) comment('单张大小')"`
 	Side       string    `json:"side" xorm:"notnull default '' Varchar(10) comment('买卖')"`
 	PosSide    string    `json:"pos_side" xorm:"notnull default '' Varchar(10) comment('开闭仓，open/close')"`
 	State      string    `json:"state" xorm:"notnull default '' Varchar(20) comment('下单、成交、取消')"`

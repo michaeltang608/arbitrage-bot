@@ -147,7 +147,7 @@ func (bs *backendServer) listenAndCal() {
 				bs.maxDiffMarginFuture = curDiff
 				log.Info("curMaxMarginFuture=%v, symbol=%v\n", bs.maxDiffMarginFuture, tickerBean.SymbolName)
 			}
-			//todo 策略执行 open position
+
 			if openSignal != 0 {
 				if atomic.CompareAndSwapInt32(&bs.strategyState, 0, 1) {
 					bs.execOpenLimit(openSignal, ticker)
@@ -155,7 +155,7 @@ func (bs *backendServer) listenAndCal() {
 				}
 			}
 
-			// close position
+			//todo close position
 			//if bs.strategyState == int32(StateOpenFilledAll) {
 			//	if strings.ToUpper(symbol) == strings.ToUpper(bs.executingSymbol) {
 			//		if bs.shouldClose(prcList) {

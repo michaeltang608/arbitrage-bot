@@ -29,7 +29,15 @@ func Get(engine *xorm.Engine, model interface{}) (has bool) {
 	return has
 }
 
-func Find(s *xorm.Engine, list interface{}, where string, pager *gintool.Pager, args ...interface{}) (err error) {
+func FindLast(s *xorm.Engine, list interface{}, condBean interface{}) (err error) {
+	err = s.Limit(1).Desc("id").Find(list, condBean)
+	if err != nil {
+		log.Error("数据库操作失败", "具体原因", err)
+	}
+	return err
+}
+
+func FindPage(s *xorm.Engine, list interface{}, where string, pager *gintool.Pager, args ...interface{}) (err error) {
 	session := s.NewSession()
 	if len(strings.TrimSpace(where)) > 0 {
 		session = session.Where(where, args...)

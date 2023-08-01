@@ -68,7 +68,7 @@ func (s *Service) subscribeFutures() {
 func (s *Service) subscribeTickers() {
 	var err error
 	argList := make([]map[string]interface{}, 0)
-	for _, symbol_ := range symb.GetAllSymb() {
+	for _, symbol_ := range symb.GetAllOkFuture() {
 
 		arg := make(map[string]interface{})
 		arg["channel"] = "tickers"
@@ -160,7 +160,7 @@ func (s *Service) listenAndNotifyPublic() {
 			priceFloat, _ := strconv.ParseFloat(price, 64)
 			priceBestBidFloat, _ := strconv.ParseFloat(bestBid, 64)
 
-			for _, symbol_ := range symb.GetAllSymb() {
+			for _, symbol_ := range symb.GetAllOkFuture() {
 				if strings.ToUpper(symbol_) == strings.ToUpper(symbolStr) {
 					tickerBean := bean.TickerBean{
 						CexName:      cex.OKE,

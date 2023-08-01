@@ -26,7 +26,7 @@ func New(cnf *Config) *xorm.Engine {
 	if err != nil {
 		log.Panic("create xml engine error ", err)
 	}
-	engine.ShowSQL(false)
+	engine.ShowSQL(true)
 	err = engine.Ping()
 	if err != nil {
 		log.Panic("连接数据库异常 ", err)

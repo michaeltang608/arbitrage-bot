@@ -31,8 +31,6 @@ var (
 		"WAVES", "LTC", "ARB", "WOO", "CFX", "FLOKI", "ICP", "DOT", "APE", "LINK", "XRP", "EGLD", "THETA", "DOGE", "USDC",
 		"XRP", "CRV"}
 
-	resultMarginBinanOke = []string{"HBAR", "XMR", "ADA", "DYDX", "AAVE", "LUNA", "GRT", "ETC", "SAND", "OP", "IMX", "NEAR", "SUSHI", "AR", "ZEC", "ETH", "MASK", "ZIL", "ETH", "DASH", "NEO", "GMT", "MANA", "MATIC", "LDO", "SOL", "XLM", "TRX", "FTM", "AVAX", "ATOM", "SHIB", "SUI", "TRX", "ALGO", "UNI", "SNX", "APT", "FIL", "STX", "USTC", "EOS", "WAVES", "LTC", "ARB", "WOO", "PEPE", "CFX", "FLOKI", "ICP", "DOT", "APE", "LINK", "XRP", "EGLD", "MINA", "GMX", "THETA", "DOGE", "USDC", "LUNC", "BCH", "XRP", "CRV"}
-
 	futureMap = make(map[string]string)
 )
 
@@ -50,11 +48,12 @@ func init() {
 		}
 	}
 }
-func GetAllSymb() []string {
-	return marginList
-}
 
 // GetFutureLot 获取合约的面值
+func GetFutureLotByInstId(instId string) string {
+	ary := strings.Split(instId, "-")
+	return GetFutureLot(ary[0])
+}
 func GetFutureLot(symbol string) string {
 	symbol = strings.ToUpper(symbol)
 	if lot, ok := futureMap[symbol]; ok {

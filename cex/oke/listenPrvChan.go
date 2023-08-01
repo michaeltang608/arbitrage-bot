@@ -8,10 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"ws-quant/cex"
 	"ws-quant/cex/models"
 	"ws-quant/core"
-	"ws-quant/pkg/feishu"
 	"ws-quant/pkg/mapper"
 )
 
@@ -25,7 +23,8 @@ func (s *Service) connectAndLoginPrivate() {
 	s.login()
 }
 
-/**
+/*
+*
 监听 login事件，触发 订阅余额
 监听 余额变动事件更新usdt余额
 */
@@ -84,7 +83,6 @@ func (s *Service) listenAndNotifyPrivate() {
 		if fastjson.GetString(msgBytes, "arg", "channel") == "balance_and_position" {
 			// 解析 余额map
 			s.processBalance(msgBytes)
-
 			continue
 		}
 
@@ -116,7 +114,7 @@ func (s *Service) listenAndNotifyPrivate() {
 		}
 
 		// 5.2 收到订单状态更新数据,
-		//todo 这里有个问题，这里的数据肯能比上面改的 new_order 早点到达，所以计划同步插入数据，异步以此处收到数据做修改，逐渐淘汰上面收到的数据
+		// todo 这里有个问题，这里的数据肯能比上面改的 new_order 早点到达，所以计划同步插入数据，异步以此处收到数据做修改，逐渐淘汰上面收到的数据
 		if fastjson.GetString(msgBytes, "arg", "channel") == "orders" {
 			s.processUpdateOrder(msgBytes)
 			continue
@@ -132,24 +130,28 @@ func (s *Service) processUpdateOrder(msgBytes []byte) {
 	val = val.Get("data", "0")
 	orderId := string(val.GetStringBytes("ordId"))
 	state := string(val.GetStringBytes("state"))
-	price := string(val.GetStringBytes("avgPx"))
+	//price := string(val.GetStringBytes("avgPx"))
 
-	isCanceled := state == core.CANCELED.State()
+	side := fastjson.GetString(msgBytes, "data", "0", "side")
+	instId := fastjson.GetString(msgBytes, "data", "0", "instId")
+	size := fastjson.GetString(msgBytes, "data", "0", "accFillSz")
+	prc := fastjson.GetString(msgBytes, "data", "0", "avgPx")
 
 	// 先查询数据库订单
-	orderDb := &models.Orders{OrderId: orderId}
-	has := mapper.Get(s.db, orderDb)
-	if !has {
+	condBean := &models.Orders{InstId: instId, Closed: "N"}
+	orderList := make([]*models.Orders, 0)
+	err := mapper.FindLast(s.db, &orderList, condBean)
+	if err != nil || orderList[0] == nil {
 		log.Error("未知订单信息，数据库未查到: %v\n", orderId)
 		return
 	}
-	log.Info("开始更新订单状态, orderId=%v\n", orderId)
+	orderDb := orderList[0]
+	log.Info("找到数据库数据开始更新订单状态, orderId=%v\n", orderId)
+	isCanceled := state == core.CANCELED.State()
 	closed := "N"
 	if isCanceled {
 		closed = "Y"
 	}
-
-	side := fastjson.GetString(msgBytes, "data", "0", "side")
 	// 发送 signal 给上级
 	if state == core.FILLED.State() {
 		s.uploadOrder(orderDb.PosSide, side)
@@ -168,13 +170,19 @@ func (s *Service) processUpdateOrder(msgBytes []byte) {
 		}
 	}
 	updateModel := &models.Orders{
-		InstId:  fastjson.GetString(msgBytes, "data", "0", "instId"),
-		Size:    fastjson.GetString(msgBytes, "data", "0", "accFillSz"),
+		InstId:  instId,
 		Side:    side,
 		State:   state,
 		Closed:  closed,
+		OrderId: orderId,
 		Updated: time.Now(),
-		Price:   price,
+	}
+
+	if size != "0" && size != "" {
+		updateModel.Size = size
+	}
+	if prc != "0" && prc != "" {
+		updateModel.Price = prc
 	}
 	isFilled := state == core.FILLED.State()
 	if isFilled {
@@ -186,32 +194,33 @@ func (s *Service) processUpdateOrder(msgBytes []byte) {
 }
 func (s *Service) processNewOrder(msgBytes []byte) {
 	log.Info("新订单数据:" + string(msgBytes))
-	if fastjson.GetString(msgBytes, "code") == "1" {
-		errMsg := fastjson.GetString(msgBytes, "data", "0", "sMsg")
-		feishu.Send("oke new order fail: " + errMsg)
-		return
-	}
-	posSide := "open"
-	if s.openOrder != nil {
-		posSide = "close"
-	}
-
-	orderType := fastjson.GetString(msgBytes, "data", "0", "ordType")
-	price := fastjson.GetString(msgBytes, "data", "0", "avgPx")
-
-	orderInsert := &models.Orders{
-		Cex:       cex.OKE,
-		Price:     price,
-		OrderType: orderType,
-		PosSide:   posSide,
-		State:     core.TRIGGER.State(),
-		OrderId:   fastjson.GetString(msgBytes, "data", "0", "ordId"),
-		Closed:    "N",
-		Created:   time.Now(),
-		Updated:   time.Now(),
-	}
-	_ = mapper.Insert(s.db, orderInsert)
-	s.ReloadOrders()
+	return
+	//if fastjson.GetString(msgBytes, "code") == "1" {
+	//	errMsg := fastjson.GetString(msgBytes, "data", "0", "sMsg")
+	//	feishu.Send("oke new order fail: " + errMsg)
+	//	return
+	//}
+	//posSide := "open"
+	//if s.openOrder != nil {
+	//	posSide = "close"
+	//}
+	//
+	//orderType := fastjson.GetString(msgBytes, "data", "0", "ordType")
+	//price := fastjson.GetString(msgBytes, "data", "0", "avgPx")
+	//
+	//orderInsert := &models.Orders{
+	//	Cex:       cex.OKE,
+	//	Price:     price,
+	//	OrderType: orderType,
+	//	PosSide:   posSide,
+	//	State:     core.TRIGGER.State(),
+	//	OrderId:   fastjson.GetString(msgBytes, "data", "0", "ordId"),
+	//	Closed:    "N",
+	//	Created:   time.Now(),
+	//	Updated:   time.Now(),
+	//}
+	//_ = mapper.Insert(s.db, orderInsert)
+	//s.ReloadOrders()
 }
 
 //func (s *service) processNewOrder(msgBytes []byte) {
