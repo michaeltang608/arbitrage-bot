@@ -21,7 +21,6 @@ type Ticker struct {
 
 type ExecState struct {
 	PosSide   string //filled close
-	CexName   string
 	Side      string //buy sell
-	OrderType string //market, limit
+	OrderType string //margin, future
 }

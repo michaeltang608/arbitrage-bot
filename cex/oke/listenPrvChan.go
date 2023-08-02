@@ -9,7 +9,9 @@ import (
 	"strings"
 	"time"
 	"ws-quant/cex/models"
+	"ws-quant/common/consts"
 	"ws-quant/core"
+	"ws-quant/models/bean"
 	"ws-quant/pkg/mapper"
 )
 
@@ -109,7 +111,7 @@ func (s *Service) listenAndNotifyPrivate() {
 
 		// 5.1 收到order 新建数据
 		if fastjson.GetString(msgBytes, "op") == "order" {
-			s.processNewOrder(msgBytes)
+			//process new order: ignore
 			continue
 		}
 
@@ -154,8 +156,8 @@ func (s *Service) processUpdateOrder(msgBytes []byte) {
 		closed = "Y"
 	}
 	// 发送 signal 给上级
-	if state == core.FILLED.State() {
-		s.uploadOrder(orderDb.PosSide, side)
+	if state == consts.Filled {
+		s.uploadOrder(orderDb.PosSide, side, orderDb.OrderType)
 	}
 	// 如果是平仓且生效，则该次策略完成
 	if orderDb.PosSide == "close" && state == core.FILLED.State() {
@@ -193,36 +195,6 @@ func (s *Service) processUpdateOrder(msgBytes []byte) {
 	_ = mapper.UpdateById(s.db, orderDb.ID, updateModel)
 	s.ReloadOrders()
 
-}
-func (s *Service) processNewOrder(msgBytes []byte) {
-	log.Info("新订单数据:" + string(msgBytes))
-	return
-	//if fastjson.GetString(msgBytes, "code") == "1" {
-	//	errMsg := fastjson.GetString(msgBytes, "data", "0", "sMsg")
-	//	feishu.Send("oke new order fail: " + errMsg)
-	//	return
-	//}
-	//posSide := "open"
-	//if s.openOrder != nil {
-	//	posSide = "close"
-	//}
-	//
-	//orderType := fastjson.GetString(msgBytes, "data", "0", "ordType")
-	//price := fastjson.GetString(msgBytes, "data", "0", "avgPx")
-	//
-	//orderInsert := &models.Orders{
-	//	Cex:       cex.OKE,
-	//	Price:     price,
-	//	OrderType: orderType,
-	//	PosSide:   posSide,
-	//	State:     core.TRIGGER.State(),
-	//	OrderId:   fastjson.GetString(msgBytes, "data", "0", "ordId"),
-	//	Closed:    "N",
-	//	Created:   time.Now(),
-	//	Updated:   time.Now(),
-	//}
-	//_ = mapper.Insert(s.db, orderInsert)
-	//s.ReloadOrders()
 }
 
 //func (s *service) processNewOrder(msgBytes []byte) {
@@ -275,5 +247,13 @@ func (s *Service) processBalance(msgBytes []byte) {
 			s.usdtBal = cashBalFloat
 			log.Info("oke的usdt最新余额是%v\n", cashBalFloat)
 		}
+	}
+}
+
+func (s *Service) uploadOrder(posSide, side, orderType string) {
+	s.execStateChan <- bean.ExecState{
+		PosSide:   posSide,
+		OrderType: orderType,
+		Side:      side,
 	}
 }

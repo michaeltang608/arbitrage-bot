@@ -11,7 +11,6 @@ import (
 	"ws-quant/cex/oke"
 	"ws-quant/common/consts"
 	"ws-quant/common/symb"
-	"ws-quant/core"
 	"ws-quant/models/bean"
 	"ws-quant/pkg/db"
 	"ws-quant/pkg/e"
@@ -202,7 +201,7 @@ func (bs *backendServer) listenState() {
 		select {
 		case execState := <-bs.execStateChan:
 
-			msg := fmt.Sprintf("收到来自%v的state: %v", execState.CexName, execState.PosSide)
+			msg := fmt.Sprintf("收到最新的state: %+v", execState)
 			feishu.Send(msg)
 			log.Info(msg)
 			if execState.PosSide == consts.Open {
@@ -215,7 +214,7 @@ func (bs *backendServer) listenState() {
 				if r == int32(StateOpenFilledAll) {
 					//该监听 symbol的close 阈值了
 					if bs.executingSymbol == "" {
-						feishu.Send("strategyState已经是3，但是oppor为空")
+						feishu.Send("strategyState已经是3，但是 executingSymbol 为空")
 					}
 				}
 			} else if execState.PosSide == consts.Close {
@@ -299,31 +298,29 @@ func (bs *backendServer) initMap() {
 }
 
 func (bs *backendServer) PostInit() {
-	//todo 修改此处逻辑更新 strategyState， prepare close symb
 	go func() {
 		defer e.Recover()()
 		time.Sleep(time.Second * 5)
-		closeOrders := make([]*models.Orders, 0)
-		openOrders := make([]*models.Orders, 0)
+		openMarginOrder := bs.okeService.GetOpenOrder(consts.Margin)
+		openFutureOrder := bs.okeService.GetOpenOrder(consts.Future)
 
-		if len(closeOrders) > 0 {
+		closeMarginOrder := bs.okeService.GetCloseOrder(consts.Margin)
+		closeFutureOrder := bs.okeService.GetCloseOrder(consts.Future)
+
+		if closeMarginOrder != nil || closeFutureOrder != nil {
 			bs.strategyState = int32(StateCloseSignalled)
-			for _, closeOrder := range closeOrders {
-				if closeOrder.State == core.FILLED.State() {
-					bs.strategyState = int32(StateCloseFilledPart)
-				}
+			if closeMarginOrder != nil && closeMarginOrder.State == consts.Filled {
+				bs.strategyState = int32(StateCloseFilledPart)
+			} else if closeFutureOrder != nil && closeFutureOrder.State == consts.Filled {
+				bs.strategyState = int32(StateCloseFilledPart)
 			}
 
-		} else if len(openOrders) > 0 {
+		} else if openMarginOrder != nil || openFutureOrder != nil {
 			bs.strategyState = int32(StateOpenSignalled)
-			for _, openOrder := range openOrders {
-				if openOrder.State == core.FILLED.State() {
-					if bs.strategyState == int32(StateOpenSignalled) {
-						bs.strategyState = int32(StateOpenFilledPart)
-					} else if bs.strategyState == int32(StateOpenFilledPart) {
-						bs.strategyState = int32(StateOpenFilledAll)
-					}
-				}
+			if openMarginOrder != nil && openMarginOrder.State == consts.Filled {
+				bs.strategyState = int32(StateOpenFilledPart)
+			} else if openFutureOrder != nil && openFutureOrder.State == consts.Filled {
+				bs.strategyState = int32(StateOpenFilledPart)
 			}
 		}
 		log.Info("程序启动，strategyState=%v", bs.strategyState)
@@ -398,21 +395,15 @@ func calFutureSizeAndTradeAmt(planTradeAmt, symbolPrc, numPerUnit float64) (actu
 func (bs *backendServer) execCloseMarket(t *MarginFutureTicker) {
 	feishu.Send(fmt.Sprintf("trigger&exec close market strategy, symb=%sA", t.Symbol))
 	log.Info("signal close, strategyState=%v", bs.strategyState)
-	//todo 调用 closeMargin/futureMarket
-	//for cexName, service_ := range bs.cexServiceMap {
-	//	go func(cexName string, service cex.Service, prcList []float64) {
-	//		if cexName == cex.KUCOIN {
-	//			log.Info("kucoinLog 执行关仓， market")
-	//			msg := service.ClosePosMarket(prcList[0], prcList[1])
-	//			log.Info("kucoinLog 关仓结果是:" + msg)
-	//		} else if cexName == cex.OKE {
-	//			log.Info("okeLog 执行关仓， market")
-	//			msg := service.ClosePosMarket(prcList[2], prcList[3])
-	//			log.Info("okeLog 关仓结果是:" + msg)
-	//		}
-	//
-	//	}(cexName, service_, prcList)
-	//}
+	go func(askPrc float64) {
+		msg := bs.okeService.CloseMarginMarket(askPrc)
+		log.Info("exec close margin market result: %v\n", msg)
+	}(t.AskMargin)
+
+	go func() {
+		msg := bs.okeService.CloseFutureMarket()
+		log.Info("exec close future market result: %v\n", msg)
+	}()
 }
 
 // seek arbitrage oppor between oke margin and future(perpetual)

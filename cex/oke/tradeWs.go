@@ -72,7 +72,7 @@ func (s *Service) CloseMarginMarket(askPrc float64) (msg string) {
 	size := util.AdjustClosePosSize(sizeFloat, side, cex.OKE)
 	return s.TradeMarket(s.openMarginOrder.InstId, size, side, cex.Close)
 }
-func (s *Service) CloseFutureMarket(askPrc float64, bidPrc float64) (msg string) {
+func (s *Service) CloseFutureMarket() (msg string) {
 	if s.openFutureOrder == nil || s.openFutureOrder.State != consts.Filled {
 		feishu.Send("ok receive close future signal close, but found no open future")
 		return "no position to close"
@@ -84,12 +84,6 @@ func (s *Service) CloseFutureMarket(askPrc float64, bidPrc float64) (msg string)
 	if s.openFutureOrder.Side == cex.Buy {
 		side = consts.Sell
 	}
-	sizeFloat := numutil.Parse(s.openFutureOrder.Size)
-	if side == consts.Buy {
-		//if buy, size是 金额？？对于 market order 好像是的
-		sizeFloat = sizeFloat * askPrc
-	}
-	// if buy in market mode, size refer to the amount of U
 	return s.TradeMarket(s.openFutureOrder.InstId, s.openFutureOrder.Size, side, cex.Close)
 }
 

@@ -116,11 +116,3 @@ func (s *Service) Close() {
 		_ = s.prvCon.Close()
 	}
 }
-
-func (s *Service) uploadOrder(posSide, side string) {
-	s.execStateChan <- bean.ExecState{
-		PosSide: posSide,
-		CexName: cex.OKE,
-		Side:    side,
-	}
-}

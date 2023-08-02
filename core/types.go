@@ -15,9 +15,7 @@ func (s OrderState) State() string {
 
 const (
 	TRIGGER  OrderState = "trigger"
-	PLACED   OrderState = "placed"
 	FILLED   OrderState = "filled"
-	LIVE     OrderState = "live"
 	CANCELED OrderState = "canceled"
 )
 
