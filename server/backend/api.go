@@ -3,6 +3,7 @@ package backend
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"time"
 	"ws-quant/cex/models"
 	"ws-quant/pkg/gintool"
 	"ws-quant/pkg/mapper"
@@ -41,24 +42,15 @@ func (bs *backendServer) marginBalances(cxt *gin.Context) {
 	return
 }
 
-func (bs *backendServer) persistBalance(type_ string) {
-	//todo
-	//result := make(map[string]interface{})
-	//
-	//total := 0.0
-	//for _, service := range bs.cexServiceMap {
-	//	result[service.GetCexName()] = service.MarginBalance()
-	//	total += service.MarginBalance()
-	//}
-	//marshal, _ := json.Marshal(result)
-	//acc := &models.Account{
-	//	ID:        0,
-	//	Body:      string(marshal),
-	//	Total:     total,
-	//	Type:      type_,
-	//	CreatedAt: time.Now(),
-	//}
-	//_ = mapper.Insert(bs.db, acc)
+func (bs *backendServer) persistBalance(reason string) {
+
+	bs.okeService.MarginBalance()
+	accountOke := &models.AccountOke{
+		Total:     bs.okeService.MarginBalance(),
+		Reason:    reason,
+		CreatedAt: time.Now(),
+	}
+	_ = mapper.Insert(bs.db, accountOke)
 }
 
 // 尝试 ok下单

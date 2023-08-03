@@ -252,7 +252,7 @@ func (bs *backendServer) dbClient() {
 		Pwd:        "58c974081d67",
 		Schema:     "crypto",
 	})
-	_ = bs.db.Sync([]interface{}{models.Account{}, models.Orders{}, models.Config{}, models.Oppor{}}...)
+	_ = bs.db.Sync([]interface{}{models.AccountOke{}, models.Orders{}, models.Config{}, models.Oppor{}}...)
 
 	ele := &models.Config{ID: 1}
 	has := mapper.Get(bs.db, ele)

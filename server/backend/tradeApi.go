@@ -17,3 +17,10 @@ func (bs *backendServer) openLimit(cxt *gin.Context) {
 	gintool.SucMsg(cxt, msg)
 	return
 }
+
+func (bs *backendServer) closeMarket(cxt *gin.Context) {
+	//orderType := cxt.DefaultQuery("orderType", consts.Margin)
+	//if orderType == consts.Margin{
+	//	bs.okeService.CloseMarginMarket()
+	//}
+}
