@@ -13,6 +13,7 @@ import (
 	"ws-quant/core"
 	"ws-quant/models/bean"
 	"ws-quant/pkg/mapper"
+	"ws-quant/pkg/util"
 )
 
 func (s *Service) connectAndLoginPrivate() {
@@ -23,6 +24,44 @@ func (s *Service) connectAndLoginPrivate() {
 	}
 	s.prvCon = conn
 	s.login()
+}
+
+func (s *Service) login() {
+	// login
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	message := timestamp + "GET" + "/users/self/verify"
+	sign := util.Sha256AndBase64(message, apiSecret)
+
+	loginArg := make(map[string]interface{})
+	loginArg["apiKey"] = apiKey
+	loginArg["passphrase"] = pwd
+	loginArg["timestamp"] = timestamp
+	loginArg["sign"] = sign
+	loginReq := Req{
+		Op: "login",
+		Args: []map[string]interface{}{
+			loginArg,
+		},
+	}
+	req, _ := json.Marshal(loginReq)
+	err := s.prvCon.WriteMessage(websocket.TextMessage, req)
+	if err != nil {
+		panic("发送login数据失败")
+	} else {
+		log.Info("发送login数据成功")
+	}
+
+}
+func (s *Service) startPing() {
+	go func() {
+		ticker := time.NewTicker(time.Second * 15)
+		for range ticker.C {
+			err := s.prvCon.WriteMessage(websocket.TextMessage, []byte("ping"))
+			if err != nil {
+				log.Error("发送ping失败")
+			}
+		}
+	}()
 }
 
 /*

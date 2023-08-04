@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
-	"strconv"
 	"strings"
 	"time"
 	"ws-quant/cex"
@@ -14,21 +13,7 @@ import (
 	"ws-quant/core"
 	"ws-quant/pkg/feishu"
 	"ws-quant/pkg/mapper"
-	"ws-quant/pkg/util"
-	"ws-quant/pkg/util/numutil"
 )
-
-func (s *Service) startPing() {
-	go func() {
-		ticker := time.NewTicker(time.Second * 15)
-		for range ticker.C {
-			err := s.prvCon.WriteMessage(websocket.TextMessage, []byte("ping"))
-			if err != nil {
-				log.Error("发送ping失败")
-			}
-		}
-	}()
-}
 
 func (s *Service) OpenMarginLimit(symbol, price, size, side string) (msg string) {
 	if s.openMarginOrder != nil {
@@ -48,91 +33,6 @@ func (s *Service) OpenFutureLimit(symbol, price, size, side string) (msg string)
 	}
 	instId := fmt.Sprintf("%s-USDT-SWAP", symbol)
 	return s.TradeLimit(instId, price, size, side, "open")
-}
-
-func (s *Service) CloseMarginMarket(askPrc float64) (msg string) {
-	if s.openMarginOrder == nil || s.openMarginOrder.State != consts.Filled {
-		feishu.Send("ok receive close future signal close, but found no open future")
-		return "no position to close"
-	}
-	if s.closeMarginOrder != nil {
-		return "close order already placed"
-	}
-	side := consts.Buy
-	if s.openMarginOrder.Side == cex.Buy {
-		side = consts.Sell
-	}
-	sizeFloat := numutil.Parse(s.openMarginOrder.Size)
-	if side == consts.Buy {
-		//if buy, size是 金额？？对于 market order 好像是的
-		sizeFloat = sizeFloat * askPrc
-	}
-
-	// if buy in market mode, size refer to the amount of U
-	size := util.AdjustClosePosSize(sizeFloat, side, cex.OKE)
-	return s.TradeMarket(s.openMarginOrder.InstId, size, side, cex.Close)
-}
-func (s *Service) CloseFutureMarket() (msg string) {
-	if s.openFutureOrder == nil || s.openFutureOrder.State != consts.Filled {
-		feishu.Send("ok receive close future signal close, but found no open future")
-		return "no position to close"
-	}
-	if s.closeFutureOrder != nil {
-		return "close order already placed"
-	}
-	side := consts.Buy
-	if s.openFutureOrder.Side == cex.Buy {
-		side = consts.Sell
-	}
-	return s.TradeMarket(s.openFutureOrder.InstId, s.openFutureOrder.Size, side, cex.Close)
-}
-
-//func (s *Service) ClosePosLimit(price string) (msg string) {
-//	// 为开仓或者 开的仓位未成交
-//	if s.openOrder == nil || s.openOrder.State != string(core.FILLED) {
-//		feishu.Send("ok receive signal close, but found no open")
-//		return "无仓位需要平仓"
-//	}
-//	if s.closeOrder != nil {
-//		return "无需重复平仓"
-//	}
-//	side := cex.Buy
-//	if s.openOrder.Side == cex.Buy {
-//		side = cex.Sell
-//	}
-//	sizeFloat, _ := strconv.ParseFloat(s.openOrder.Size, 64)
-//	size := util.AdjustClosePosSize(sizeFloat, side, cex.OKE)
-//	symbol := strings.Split(s.openOrder.InstId, "-")[0]
-//	return s.TradeLimit(symbol, price, size, side, cex.Close)
-//}
-
-func (s *Service) TradeMarket(instId, size, side, posSide string) (msg string) {
-	closePos := posSide == cex.Close
-	arg := map[string]interface{}{
-		"side":       strings.ToLower(side),
-		"instId":     instId,
-		"tdMode":     "cross",
-		"ordType":    "market",
-		"sz":         size,
-		"ccy":        "USDT",
-		"reduceOnly": closePos,
-	}
-
-	req := Req{
-		Id: "001",
-		Op: "order",
-		Args: []map[string]interface{}{
-			arg,
-		},
-	}
-	reqBytes, _ := json.Marshal(req)
-	log.Info("准备下单信息:%v\n", string(reqBytes))
-	err := s.prvCon.WriteMessage(websocket.TextMessage, reqBytes)
-	if err != nil {
-		panic("发送订阅账户余额数据失败")
-	} else {
-		return "trigger trade成功, 最终结果见推送数据"
-	}
 }
 
 // TradeLimit instId: EOS-USDT, EOS-USDT-SWAP是合约
@@ -191,29 +91,88 @@ func (s *Service) TradeLimit(instId, price, size, side, posSide string) (msg str
 	}
 }
 
-func (s *Service) login() {
-	// login
-	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
-	message := timestamp + "GET" + "/users/self/verify"
-	sign := util.Sha256AndBase64(message, apiSecret)
+func (s *Service) TradeMarket(instId, size, side, posSide string) (msg string) {
+	closePos := posSide == cex.Close
+	arg := map[string]interface{}{
+		"side":       strings.ToLower(side),
+		"instId":     instId,
+		"tdMode":     "cross",
+		"ordType":    "market",
+		"sz":         size,
+		"ccy":        "USDT",
+		"reduceOnly": closePos,
+	}
 
-	loginArg := make(map[string]interface{})
-	loginArg["apiKey"] = apiKey
-	loginArg["passphrase"] = pwd
-	loginArg["timestamp"] = timestamp
-	loginArg["sign"] = sign
-	loginReq := Req{
-		Op: "login",
+	req := Req{
+		Id: "001",
+		Op: "order",
 		Args: []map[string]interface{}{
-			loginArg,
+			arg,
 		},
 	}
-	req, _ := json.Marshal(loginReq)
-	err := s.prvCon.WriteMessage(websocket.TextMessage, req)
+	reqBytes, _ := json.Marshal(req)
+	log.Info("准备下单信息:%v\n", string(reqBytes))
+	err := s.prvCon.WriteMessage(websocket.TextMessage, reqBytes)
 	if err != nil {
-		panic("发送login数据失败")
+		panic("发送订阅账户余额数据失败")
 	} else {
-		log.Info("发送login数据成功")
+		return "trigger trade成功, 最终结果见推送数据"
 	}
-
 }
+
+//
+//func (s *Service) CloseMarginMarket(askPrc float64) (msg string) {
+//	if s.openMarginOrder == nil || s.openMarginOrder.State != consts.Filled {
+//		feishu.Send("ok receive close future signal close, but found no open future")
+//		return "no position to close"
+//	}
+//	if s.closeMarginOrder != nil {
+//		return "close order already placed"
+//	}
+//	side := consts.Buy
+//	if s.openMarginOrder.Side == cex.Buy {
+//		side = consts.Sell
+//	}
+//	sizeFloat := numutil.Parse(s.openMarginOrder.Size)
+//	if side == consts.Buy {
+//		//if buy, size是 金额？？对于 market order 好像是的
+//		sizeFloat = sizeFloat * askPrc
+//	}
+//
+//	// if buy in market mode, size refer to the amount of U
+//	size := util.AdjustClosePosSize(sizeFloat, side, cex.OKE)
+//	return s.TradeMarket(s.openMarginOrder.InstId, size, side, cex.Close)
+//}
+//func (s *Service) CloseFutureMarket() (msg string) {
+//	if s.openFutureOrder == nil || s.openFutureOrder.State != consts.Filled {
+//		feishu.Send("ok receive close future signal close, but found no open future")
+//		return "no position to close"
+//	}
+//	if s.closeFutureOrder != nil {
+//		return "close order already placed"
+//	}
+//	side := consts.Buy
+//	if s.openFutureOrder.Side == cex.Buy {
+//		side = consts.Sell
+//	}
+//	return s.TradeMarket(s.openFutureOrder.InstId, s.openFutureOrder.Size, side, cex.Close)
+//}
+
+//func (s *Service) ClosePosLimit(price string) (msg string) {
+//	// 为开仓或者 开的仓位未成交
+//	if s.openOrder == nil || s.openOrder.State != string(core.FILLED) {
+//		feishu.Send("ok receive signal close, but found no open")
+//		return "无仓位需要平仓"
+//	}
+//	if s.closeOrder != nil {
+//		return "无需重复平仓"
+//	}
+//	side := cex.Buy
+//	if s.openOrder.Side == cex.Buy {
+//		side = cex.Sell
+//	}
+//	sizeFloat, _ := strconv.ParseFloat(s.openOrder.Size, 64)
+//	size := util.AdjustClosePosSize(sizeFloat, side, cex.OKE)
+//	symbol := strings.Split(s.openOrder.InstId, "-")[0]
+//	return s.TradeLimit(symbol, price, size, side, cex.Close)
+//}
