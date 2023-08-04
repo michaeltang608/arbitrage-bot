@@ -396,12 +396,12 @@ func (bs *backendServer) execCloseMarket(t *MarginFutureTicker) {
 	feishu.Send(fmt.Sprintf("trigger&exec close market strategy, symb=%sA", t.Symbol))
 	log.Info("signal close, strategyState=%v", bs.strategyState)
 	go func(askPrc float64) {
-		msg := bs.okeService.CloseFutureOrder()
+		msg := bs.okeService.CloseOrder(consts.Margin)
 		log.Info("exec close margin market result: %v\n", msg)
 	}(t.AskMargin)
 
 	go func() {
-		msg := bs.okeService.CloseFutureOrder()
+		msg := bs.okeService.CloseOrder(consts.Future)
 		log.Info("exec close future market result: %v\n", msg)
 	}()
 }
