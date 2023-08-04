@@ -121,7 +121,7 @@ func (s *service) connectPublic() {
 	log.Info("conn 不为nil")
 	s.pubCon = conn
 	s.pubConLastConnectTime = time.Now().Second()
-	log.Info("连接pubCon 成功，开始监听消息了")
+	log.Info("连接pubCon 成功，开始监听消息了，pubConn为空=%v", s.pubCon == nil)
 }
 
 func (s *service) listenAndNotifyPublic() {

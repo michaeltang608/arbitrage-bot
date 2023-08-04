@@ -3,3 +3,4 @@ go.sum
 go.mod
 test/
 myquant
+.DS_Store
