@@ -345,7 +345,11 @@ func (bs *backendServer) execOpenLimit(openSignal int, t *MarginFutureTicker) {
 		return
 	}
 
-	tradeAmt, futureSize := calFutureSizeAndTradeAmt(bs.config.TradeAmt, symbolPrc, numutil.Parse(numPerUnit))
+	tradeAmt, futureSize := bs.calFutureSizeAndTradeAmt(t.Symbol, symbolPrc, numutil.Parse(numPerUnit))
+	if futureSize == 0 {
+		bs.strategyState = 0
+		return
+	}
 	go func(tradeAmt float64) {
 		// margin
 		priceF := 0.0
@@ -378,13 +382,21 @@ func (bs *backendServer) execOpenLimit(openSignal int, t *MarginFutureTicker) {
 	feishu.Send("strategy open triggered")
 }
 
-func calFutureSizeAndTradeAmt(planTradeAmt, symbolPrc, numPerUnit float64) (actualTradeAmt float64, futureSize int) {
+func (bs *backendServer) calFutureSizeAndTradeAmt(symbol string, symbolPrc, numPerUnit float64) (actualTradeAmt float64, futureSize int) {
 	//1 cal can buy sym num
-	symNum := planTradeAmt / symbolPrc
+	symNum := bs.config.TradeAmt / symbolPrc
 	unitNum := symNum / numPerUnit
 	futureSize = int(unitNum)
 	if futureSize == 0 {
 		futureSize = 1
+		// 这个时候可能会超过 amtMax, 注意判断
+		actualTradeAmt = float64(futureSize) * numPerUnit * symbolPrc
+		if actualTradeAmt > bs.config.TradeAmtMax {
+			msg := fmt.Sprintf("actual amt exceed max, %v, %v, %s", actualTradeAmt, bs.config.TradeAmtMax, symNum)
+			feishu.Send(msg)
+			log.Error(msg)
+			return 0, 0
+		}
 	}
 	//计算 actualAmtT
 	actualSymNum := numPerUnit * float64(futureSize)

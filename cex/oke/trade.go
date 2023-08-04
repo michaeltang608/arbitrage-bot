@@ -68,7 +68,7 @@ func (s *Service) CloseOrder(orderType string) string {
 	}
 	reqBytes, _ := json.Marshal(&req)
 	body := string(reqBytes)
-	return execPostOrder(body, api)
+	return execOrder(body, http.MethodPost, api)
 }
 
 type CancelReq struct {
@@ -84,9 +84,19 @@ func cancelOrder(instId, orderId string) string {
 	}
 	reqBytes, _ := json.Marshal(&req)
 	body := string(reqBytes)
-	return execPostOrder(body, api)
+	return execOrder(body, http.MethodPost, api)
 }
-func execPostOrder(body string, api string) string {
+
+func (s *Service) QueryLiveOrder(instId string) string {
+	/*
+		GET /api/v5/trade/order
+		GET /api/v5/trade/order?ordId=590910403358593111&instId=BTC-US
+
+	*/
+	api := fmt.Sprintf("/api/v5/trade/order?instId=%v", instId)
+	return execOrder("", http.MethodGet, api)
+}
+func execOrder(body, method, api string) string {
 	now := time.Now()
 	utcTime := now.Add(-time.Hour * 8)
 	formatTime := utcTime.Format("2006-01-02T15:04:05.000Z")
@@ -102,6 +112,6 @@ func execPostOrder(body string, api string) string {
 		"OK-ACCESS-PASSPHRASE": pwd,
 		"CONTENT-TYPE":         "application/json",
 	}
-	respBytes := util.HttpRequest(http.MethodPost, baseHttpUrl+api, body, headers)
+	respBytes := util.HttpRequest(method, baseHttpUrl+api, body, headers)
 	return string(respBytes)
 }

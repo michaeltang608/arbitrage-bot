@@ -63,24 +63,27 @@ func (s *Service) TradeLimit(instId, price, size, side, posSide string) (msg str
 		orderType = consts.Future
 	}
 	order := &models.Orders{
-		InstId:    instId,
-		Cex:       cex.OKE,
-		Price:     price,
-		Size:      size,
-		Side:      side,
-		PosSide:   posSide,
-		State:     string(core.TRIGGER),
-		OrderId:   "",
-		OrderType: orderType,
-		Closed:    "N",
-		Created:   time.Now(),
-		Updated:   time.Now(),
+		InstId:     instId,
+		Cex:        cex.OKE,
+		LimitPrice: price,
+		Size:       size,
+		Side:       side,
+		PosSide:    posSide,
+		State:      string(core.TRIGGER),
+		OrderId:    "",
+		OrderType:  orderType,
+		Closed:     "N",
+		Created:    time.Now(),
+		Updated:    time.Now(),
 	}
 	if strings.HasSuffix(instId, "SWAP") {
 		numPerSize := symb.GetFutureLotByInstId(instId)
 		order.NumPerSize = numPerSize
 	}
-	_ = mapper.Insert(s.db, order)
+	// 异步以便提高主流程效率
+	go func() {
+		_ = mapper.Insert(s.db, order)
+	}()
 
 	//s.ReloadOrders()
 	err := s.prvCon.WriteMessage(websocket.TextMessage, reqBytes)

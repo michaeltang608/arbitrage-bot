@@ -18,6 +18,11 @@ func (bs *backendServer) openLimit(cxt *gin.Context) {
 	return
 }
 
+func (bs *backendServer) queryLiveOrder(cxt *gin.Context) {
+	instId := cxt.Query("instId")
+	gintool.SucMsg(cxt, bs.okeService.QueryLiveOrder(instId))
+	return
+}
 func (bs *backendServer) closeMarket(cxt *gin.Context) {
 	//orderType := cxt.DefaultQuery("orderType", consts.Margin)
 	//if orderType == consts.Margin{
