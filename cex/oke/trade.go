@@ -64,7 +64,7 @@ func (s *Service) createCloseOrder(openOrder *models.Orders) {
 		PosSide:   "close",
 		State:     string(core.TRIGGER),
 		OrderId:   "",
-		OrderType: consts.Market,
+		OrderType: openOrder.OrderType,
 		Closed:    "N",
 		Created:   time.Now(),
 		Updated:   time.Now(),

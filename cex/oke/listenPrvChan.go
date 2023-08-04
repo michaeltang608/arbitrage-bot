@@ -155,7 +155,6 @@ func (s *Service) listenAndNotifyPrivate() {
 		}
 
 		// 5.2 收到订单状态更新数据,
-		// todo 这里有个问题，这里的数据肯能比上面改的 new_order 早点到达，所以计划同步插入数据，异步以此处收到数据做修改，逐渐淘汰上面收到的数据
 		if fastjson.GetString(msgBytes, "arg", "channel") == "orders" {
 			s.processUpdateOrder(msgBytes)
 			continue
@@ -166,7 +165,7 @@ func (s *Service) listenAndNotifyPrivate() {
 }
 
 func (s *Service) processUpdateOrder(msgBytes []byte) {
-	log.Info("订单状态更新: %v\n", string(msgBytes))
+
 	val, _ := fastjson.ParseBytes(msgBytes)
 	val = val.Get("data", "0")
 	orderId := string(val.GetStringBytes("ordId"))
@@ -177,6 +176,7 @@ func (s *Service) processUpdateOrder(msgBytes []byte) {
 	instId := fastjson.GetString(msgBytes, "data", "0", "instId")
 	size := fastjson.GetString(msgBytes, "data", "0", "accFillSz")
 	prc := fastjson.GetString(msgBytes, "data", "0", "avgPx")
+	log.Info("订单状态更新: instId=%s,state=%s, %v\n", instId, state, string(msgBytes))
 
 	// 先查询数据库订单
 	condBean := &models.Orders{InstId: instId, Closed: "N"}
