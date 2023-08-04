@@ -20,7 +20,6 @@ import (
 
 type CloseReq struct {
 	InstId  string `json:"instId"`
-	PosSide string `json:"posSide"` // 平多是 long, 平空时 short
 	MgnMode string `json:"mgnMode"` // 默认 cross
 	Ccy     string `json:"ccy"`
 }
@@ -35,30 +34,7 @@ func (s *Service) CloseOrder(orderType string) string {
 		feishu.Send(msg)
 		return msg
 	}
-
 	instId := openOrder.InstId
-	side := consts.Buy
-	if openOrder.Side == consts.Buy {
-		side = consts.Sell
-	}
-	order := &models.Orders{
-		InstId:    instId,
-		Cex:       cex.OKE,
-		Side:      side,
-		PosSide:   "close",
-		State:     string(core.TRIGGER),
-		OrderId:   "",
-		OrderType: consts.Market,
-		Closed:    "N",
-		Created:   time.Now(),
-		Updated:   time.Now(),
-	}
-	if strings.HasSuffix(instId, "SWAP") {
-		numPerSize := symb.GetFutureLotByInstId(instId)
-		order.NumPerSize = numPerSize
-	}
-	_ = mapper.Insert(s.db, order)
-
 	// do request
 	api := "/api/v5/trade/close-position"
 	req := CloseReq{
@@ -68,7 +44,32 @@ func (s *Service) CloseOrder(orderType string) string {
 	}
 	reqBytes, _ := json.Marshal(&req)
 	body := string(reqBytes)
-	return execOrder(body, http.MethodPost, api)
+	resp := execOrder(body, http.MethodPost, api)
+	if len(resp) > 0 {
+		side := consts.Buy
+		if openOrder.Side == consts.Buy {
+			side = consts.Sell
+		}
+
+		order := &models.Orders{
+			InstId:    instId,
+			Cex:       cex.OKE,
+			Side:      side,
+			PosSide:   "close",
+			State:     string(core.TRIGGER),
+			OrderId:   "",
+			OrderType: consts.Market,
+			Closed:    "N",
+			Created:   time.Now(),
+			Updated:   time.Now(),
+		}
+		if strings.HasSuffix(instId, "SWAP") {
+			numPerSize := symb.GetFutureLotByInstId(instId)
+			order.NumPerSize = numPerSize
+		}
+		_ = mapper.Insert(s.db, order)
+	}
+	return resp
 }
 
 type CancelReq struct {
@@ -84,7 +85,8 @@ func cancelOrder(instId, orderId string) string {
 	}
 	reqBytes, _ := json.Marshal(&req)
 	body := string(reqBytes)
-	return execOrder(body, http.MethodPost, api)
+	resp := execOrder(body, http.MethodPost, api)
+	return resp
 }
 
 func (s *Service) QueryLiveOrder(instId string) string {
@@ -97,6 +99,7 @@ func (s *Service) QueryLiveOrder(instId string) string {
 	return execOrder("", http.MethodGet, api)
 }
 func execOrder(body, method, api string) string {
+	log.Info("开始execOrder: body=%s, method=%s, api=%s", body, method, api)
 	now := time.Now()
 	utcTime := now.Add(-time.Hour * 8)
 	formatTime := utcTime.Format("2006-01-02T15:04:05.000Z")
@@ -113,5 +116,7 @@ func execOrder(body, method, api string) string {
 		"CONTENT-TYPE":         "application/json",
 	}
 	respBytes := util.HttpRequest(method, baseHttpUrl+api, body, headers)
-	return string(respBytes)
+	resp := string(respBytes)
+	log.Info("返回的close的结果是=%v, size=%v", resp, len(resp))
+	return resp
 }

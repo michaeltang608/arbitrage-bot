@@ -10,7 +10,9 @@ func (bs *backendServer) tradeRouteGroup() router.RouteGroup {
 		Prefix:  "trade",
 		Comment: "交易类",
 		RouteList: []router.Route{
-			router.NewRoute(http.MethodPost, "/openLimit", bs.openLimit, "买"),
+			router.NewRoute(http.MethodPost, "/openLimit", bs.openLimit, "open"),
+			router.NewRoute(http.MethodPost, "/queryLiveOrder", bs.queryLiveOrder, "query"),
+			router.NewRoute(http.MethodPost, "/closeMarket", bs.closeMarket, "close"),
 			//router.NewRoute(http.MethodPost, "/closePos", bs.closePos, "平仓"),
 		},
 	}

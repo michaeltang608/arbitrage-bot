@@ -29,5 +29,8 @@ func HttpRequest(method, url, body string, headers map[string]string) []byte {
 	if err != nil {
 		log.Panic("请求失败", err)
 	}
+	if resp.StatusCode() != 200 {
+		log.Printf("请求code: %v\n", resp.StatusCode())
+	}
 	return resp.Body()
 }

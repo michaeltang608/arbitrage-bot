@@ -65,6 +65,11 @@ func (s *Service) GetCloseOrder(orderType string) *models.Orders {
 }
 
 func (s *Service) ReloadOrders() {
+	s.openMarginOrder = nil
+	s.openFutureOrder = nil
+
+	s.closeMarginOrder = nil
+	s.closeFutureOrder = nil
 	openOrders, closeOrders := cex.QueryOpenCloseOrders(s.db)
 	for _, o := range openOrders {
 		if o.OrderType == consts.Margin {
