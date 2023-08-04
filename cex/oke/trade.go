@@ -34,6 +34,8 @@ func (s *Service) CloseOrder(orderType string) string {
 		feishu.Send(msg)
 		return msg
 	}
+
+	s.createCloseOrder(openOrder)
 	instId := openOrder.InstId
 	// do request
 	api := "/api/v5/trade/close-position"
@@ -45,31 +47,33 @@ func (s *Service) CloseOrder(orderType string) string {
 	reqBytes, _ := json.Marshal(&req)
 	body := string(reqBytes)
 	resp := execOrder(body, http.MethodPost, api)
-	if len(resp) > 0 {
-		side := consts.Buy
-		if openOrder.Side == consts.Buy {
-			side = consts.Sell
-		}
-
-		order := &models.Orders{
-			InstId:    instId,
-			Cex:       cex.OKE,
-			Side:      side,
-			PosSide:   "close",
-			State:     string(core.TRIGGER),
-			OrderId:   "",
-			OrderType: consts.Market,
-			Closed:    "N",
-			Created:   time.Now(),
-			Updated:   time.Now(),
-		}
-		if strings.HasSuffix(instId, "SWAP") {
-			numPerSize := symb.GetFutureLotByInstId(instId)
-			order.NumPerSize = numPerSize
-		}
-		_ = mapper.Insert(s.db, order)
-	}
 	return resp
+}
+
+func (s *Service) createCloseOrder(openOrder *models.Orders) {
+	side := consts.Buy
+	if openOrder.Side == consts.Buy {
+		side = consts.Sell
+	}
+
+	instId := openOrder.InstId
+	order := &models.Orders{
+		InstId:    instId,
+		Cex:       cex.OKE,
+		Side:      side,
+		PosSide:   "close",
+		State:     string(core.TRIGGER),
+		OrderId:   "",
+		OrderType: consts.Market,
+		Closed:    "N",
+		Created:   time.Now(),
+		Updated:   time.Now(),
+	}
+	if strings.HasSuffix(instId, "SWAP") {
+		numPerSize := symb.GetFutureLotByInstId(instId)
+		order.NumPerSize = numPerSize
+	}
+	_ = mapper.Insert(s.db, order)
 }
 
 type CancelReq struct {
@@ -77,7 +81,7 @@ type CancelReq struct {
 	OrdId  string `json:"ordId"`
 }
 
-func cancelOrder(instId, orderId string) string {
+func (s *Service) CancelOrder(instId, orderId string) string {
 	api := "/api/v5/trade/cancel-order"
 	req := CancelReq{
 		InstId: instId,

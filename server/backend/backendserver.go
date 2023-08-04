@@ -392,7 +392,7 @@ func (bs *backendServer) calFutureSizeAndTradeAmt(symbol string, symbolPrc, numP
 		// 这个时候可能会超过 amtMax, 注意判断
 		actualTradeAmt = float64(futureSize) * numPerUnit * symbolPrc
 		if actualTradeAmt > bs.config.TradeAmtMax {
-			msg := fmt.Sprintf("actual amt exceed max, %v, %v, %s", actualTradeAmt, bs.config.TradeAmtMax, symNum)
+			msg := fmt.Sprintf("actual amt exceed max, %v, %v, %s", actualTradeAmt, bs.config.TradeAmtMax, symbol)
 			feishu.Send(msg)
 			log.Error(msg)
 			return 0, 0
