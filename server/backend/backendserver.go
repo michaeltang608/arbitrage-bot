@@ -149,7 +149,7 @@ func (bs *backendServer) listenAndCal() {
 
 			if openSignal != 0 {
 				if atomic.CompareAndSwapInt32(&bs.strategyState, 0, 1) {
-					bs.execOpenLimit(openSignal, ticker)
+					bs.execOpenLimit(openSignal, ticker, curDiff)
 				}
 			}
 
@@ -226,9 +226,9 @@ func (bs *backendServer) listenState() {
 				r := atomic.AddInt32(&bs.strategyState, 1)
 				if r == int32(StateCloseFilledAll) {
 					log.Info("策略全部完成")
-					feishu.Send("strategy all done!, wait for manual reset")
-					//等待人工重置，否则容易再次出发，大概率机会没了，无法双向交易
-					bs.strategyState = -1
+					// 调高下次触发的条件，防止立即再次触发
+					bs.config.StrategyOpenThreshold = 2
+					bs.strategyState = 0
 					bs.executingSymbol = ""
 					go func() {
 						time.Sleep(time.Second * 5)
@@ -328,8 +328,8 @@ func (bs *backendServer) PostInit() {
 
 }
 
-func (bs *backendServer) execOpenLimit(openSignal int, t *MarginFutureTicker) {
-	msg := fmt.Sprintf("trigger&exec open limit strategy,ticker= %+v", t)
+func (bs *backendServer) execOpenLimit(openSignal int, t *MarginFutureTicker, curDiff float64) {
+	msg := fmt.Sprintf("trigger&exec open limit strategy,curDiff=%v, ticker= %+v", curDiff, t)
 	feishu.Send(msg)
 	log.Info(msg)
 	bs.executingSymbol = t.Symbol

@@ -11,6 +11,7 @@ func (bs *backendServer) queryExecState(cxt *gin.Context) {
 	data := make(map[string]interface{}, 0)
 	data["executingSymbol"] = bs.executingSymbol
 	data["strategyState"] = bs.strategyState
+	data["orderStat"] = bs.okeService.GetOrderStat()
 	gintool.SucData(cxt, data)
 }
 func (bs *backendServer) getConfig(cxt *gin.Context) {

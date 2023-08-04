@@ -12,6 +12,7 @@ import (
 	"ws-quant/common/consts"
 	"ws-quant/core"
 	"ws-quant/models/bean"
+	"ws-quant/pkg/feishu"
 	"ws-quant/pkg/mapper"
 	"ws-quant/pkg/util"
 )
@@ -197,21 +198,24 @@ func (s *Service) processUpdateOrder(msgBytes []byte) {
 	// 发送 signal 给上级
 	if state == consts.Filled {
 		s.uploadOrder(orderDb.PosSide, side, orderDb.OrderType)
-	}
-	// 如果是平仓且生效，则该次策略完成
-	if orderDb.PosSide == "close" && state == core.FILLED.State() {
-		log.Info("该次策略完成")
-		closed = "Y"
-		// 同时也 close 开仓
-		openOrder := s.GetOpenOrder(orderType)
-		if openOrder == nil {
-			log.Error("找不到开仓订单")
-		} else {
-			updateOpen := &models.Orders{Closed: "Y", Updated: time.Now()}
-			_ = mapper.UpdateById(s.db, openOrder.ID, updateOpen)
-			log.Info("close掉开仓订单")
+		// 如果是平仓且生效，则该次策略完成
+		if orderDb.PosSide == "close" {
+			log.Info("该次策略完成")
+			closed = "Y"
+			// 同时也 close 开仓
+			openOrder := s.GetOpenOrder(orderType)
+			if openOrder == nil {
+				msg := fmt.Sprintf("找不到开仓订单, orderStat=%v", s.GetOrderStat())
+				log.Error(msg)
+				feishu.Send(msg)
+			} else {
+				updateOpen := &models.Orders{Closed: "Y", Updated: time.Now()}
+				_ = mapper.UpdateById(s.db, openOrder.ID, updateOpen)
+				log.Info("close掉开仓订单")
+			}
 		}
 	}
+
 	updateModel := &models.Orders{
 		InstId:  instId,
 		Side:    side,

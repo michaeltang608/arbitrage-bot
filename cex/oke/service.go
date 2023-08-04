@@ -1,6 +1,7 @@
 package oke
 
 import (
+	"fmt"
 	"github.com/gorilla/websocket"
 	"sync"
 	"ws-quant/cex"
@@ -55,6 +56,35 @@ func (s *Service) GetOpenOrder(orderType string) *models.Orders {
 		return s.openMarginOrder
 	}
 	return s.openFutureOrder
+}
+
+func (s *Service) GetOrderStat() string {
+	one, two, three, four := "0", "0", "0", "0"
+	if s.openMarginOrder != nil {
+		one = "1"
+		if s.openMarginOrder.State == consts.Filled {
+			one = "2"
+		}
+	}
+	if s.openFutureOrder != nil {
+		two = "1"
+		if s.openFutureOrder.State == consts.Filled {
+			two = "2"
+		}
+	}
+	if s.closeMarginOrder != nil {
+		three = "1"
+		if s.closeMarginOrder.State == consts.Filled {
+			three = "2"
+		}
+	}
+	if s.closeFutureOrder != nil {
+		four = "1"
+		if s.closeFutureOrder.State == consts.Filled {
+			four = "2"
+		}
+	}
+	return fmt.Sprintf("%s-%s-%s-%s", one, two, three, four)
 }
 
 func (s *Service) GetCloseOrder(orderType string) *models.Orders {
