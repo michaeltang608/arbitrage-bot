@@ -228,6 +228,8 @@ func (bs *backendServer) listenState() {
 					log.Info("策略全部完成")
 					// 调高下次触发的条件，防止立即再次触发
 					bs.config.StrategyOpenThreshold = 2
+					//防止程序重启数据丢失
+					mapper.UpdateById(bs.db, 1, &models.Config{StrategyOpenThreshold: 2})
 					bs.strategyState = 0
 					bs.executingSymbol = ""
 					go func() {

@@ -79,6 +79,7 @@ func Insert(s *xorm.Engine, ele interface{}) (err error) {
 	return err
 }
 
+// UpdateById 默认值不会更新
 func UpdateById(engine *xorm.Engine, id interface{}, ele interface{}) int64 {
 	num, err := engine.ID(id).Update(ele)
 	if err != nil {

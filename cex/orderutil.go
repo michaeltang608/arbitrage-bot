@@ -23,7 +23,7 @@ func QueryOpenCloseOrders(db *xorm.Engine) (openOrders, closeOrders []*models.Or
 			openOrders = append(openOrders, o)
 		}
 		if o.PosSide == consts.Close {
-			openOrders = append(closeOrders, o)
+			closeOrders = append(closeOrders, o)
 		}
 	}
 

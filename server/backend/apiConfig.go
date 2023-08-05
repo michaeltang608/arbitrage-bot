@@ -12,6 +12,8 @@ func (bs *backendServer) queryExecState(cxt *gin.Context) {
 	data["executingSymbol"] = bs.executingSymbol
 	data["strategyState"] = bs.strategyState
 	data["orderStat"] = bs.okeService.GetOrderStat()
+	data["StrategyOpenThreshold"] = bs.config.StrategyOpenThreshold
+	data["TradeAmt"] = bs.config.TradeAmt
 	gintool.SucData(cxt, data)
 }
 func (bs *backendServer) getConfig(cxt *gin.Context) {
