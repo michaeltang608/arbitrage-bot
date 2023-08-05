@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 	"ws-quant/cex/models"
+	"ws-quant/pkg/feishu"
 	"ws-quant/pkg/gintool"
 	"ws-quant/pkg/mapper"
 )
@@ -27,6 +28,7 @@ func (bs *backendServer) refreshStrategy(cxt *gin.Context) {
 		"suc": true,
 		"msg": "strategy reloaded",
 	})
+	feishu.Send("strategy refreshed")
 	return
 }
 

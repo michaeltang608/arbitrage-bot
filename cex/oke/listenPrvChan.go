@@ -152,6 +152,7 @@ func (s *Service) listenAndNotifyPrivate() {
 		// 5.1 收到order 新建数据
 		if fastjson.GetString(msgBytes, "op") == "order" {
 			//process new order: ignore
+			log.Info("新订单收到数据: %v", msg)
 			continue
 		}
 
@@ -197,7 +198,7 @@ func (s *Service) processUpdateOrder(msgBytes []byte) {
 	}
 	// 发送 signal 给上级
 	if state == consts.Filled {
-		s.uploadOrder(orderDb.PosSide, side, orderDb.OrderType)
+
 		// 如果是平仓且生效，则该次策略完成
 		if orderDb.PosSide == "close" {
 			log.Info("该次策略完成")
@@ -237,6 +238,8 @@ func (s *Service) processUpdateOrder(msgBytes []byte) {
 	}
 	_ = mapper.UpdateById(s.db, orderDb.ID, updateModel)
 	s.ReloadOrders()
+	// 向上通知不用急，不能太快触发close, 否则拿不到最新的订单状态
+	s.uploadOrder(orderDb.PosSide, side, orderDb.OrderType)
 
 }
 
