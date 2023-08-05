@@ -232,14 +232,15 @@ func (s *Service) processUpdateOrder(msgBytes []byte) {
 	if prc != "0" && prc != "" {
 		updateModel.Price = prc
 	}
-	isFilled := state == core.FILLED.State()
-	if isFilled {
+	if state == consts.Filled {
 		updateModel.FilledTime = time.Now()
 	}
 	_ = mapper.UpdateById(s.db, orderDb.ID, updateModel)
 	s.ReloadOrders()
 	// 向上通知不用急，不能太快触发close, 否则拿不到最新的订单状态
-	s.uploadOrder(orderDb.PosSide, side, orderDb.OrderType)
+	if state == consts.Filled {
+		s.uploadOrder(orderDb.PosSide, side, orderDb.OrderType)
+	}
 
 }
 
