@@ -35,9 +35,9 @@ func AdjustPrice(price float64, side string) string {
 
 	priceAdjusted := 0.0
 	if side == "buy" {
-		priceAdjusted = price * (1 + 0.001)
+		priceAdjusted = price * (1 + 0.002)
 	} else {
-		priceAdjusted = price * (1 - 0.001)
+		priceAdjusted = price * (1 - 0.002)
 	}
 	return strconv.FormatFloat(priceAdjusted, 'f', decimalLen, 64)
 }

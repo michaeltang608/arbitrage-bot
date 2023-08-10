@@ -27,9 +27,5 @@ func QueryOpenCloseOrders(db *xorm.Engine) (openOrders, closeOrders []*models.Or
 		}
 	}
 
-	if len(openOrders) > 2 || len(closeOrders) > 1 {
-		feishu.Send("open orders num or close orders num abnormal, plz check")
-		return
-	}
 	return openOrders, closeOrders
 }
