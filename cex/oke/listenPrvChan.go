@@ -10,7 +10,6 @@ import (
 	"time"
 	"ws-quant/cex/models"
 	"ws-quant/common/consts"
-	"ws-quant/core"
 	"ws-quant/models/bean"
 	"ws-quant/pkg/feishu"
 	"ws-quant/pkg/mapper"
@@ -171,6 +170,7 @@ func (s *Service) processUpdateOrder(msgBytes []byte) {
 	val, _ := fastjson.ParseBytes(msgBytes)
 	val = val.Get("data", "0")
 	orderId := string(val.GetStringBytes("ordId"))
+	myOid := string(val.GetStringBytes("clOrdId"))
 	state := string(val.GetStringBytes("state"))
 	//price := string(val.GetStringBytes("avgPx"))
 
@@ -181,17 +181,16 @@ func (s *Service) processUpdateOrder(msgBytes []byte) {
 	log.Info("订单状态更新: instId=%s,state=%s, %v\n", instId, state, string(msgBytes))
 
 	// 先查询数据库订单
-	condBean := &models.Orders{InstId: instId, Closed: "N"}
-	orderList := make([]*models.Orders, 0)
-	err := mapper.FindLast(s.db, &orderList, condBean)
-	if err != nil || orderList[0] == nil {
-		log.Error("未知订单信息，数据库未查到: %v\n", orderId)
+	orderDb := &models.Orders{MyOid: myOid, Closed: "N"}
+	has := mapper.Get(s.db, orderDb)
+	if !has {
+		log.Error("未知订单信息，数据库未查到: myOid=%v\n", myOid)
 		return
 	}
-	orderDb := orderList[0]
+
 	orderType := orderDb.OrderType
-	log.Info("找到数据库数据开始更新订单状态, orderId=%v\n", orderId)
-	isCanceled := state == core.CANCELED.State()
+	log.Info("找到数据库数据开始更新订单状态, orderId=%v, myOid=%v\n", orderId, myOid)
+	isCanceled := state == consts.Cancelled
 	closed := "N"
 	if isCanceled {
 		closed = "Y"

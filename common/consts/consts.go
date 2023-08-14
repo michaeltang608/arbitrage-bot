@@ -12,4 +12,6 @@ const (
 	Margin = "Margin"
 	Future = "Future"
 	Filled = "filled"
+
+	Cancelled = "canceled"
 )

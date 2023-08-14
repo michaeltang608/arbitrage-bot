@@ -13,7 +13,10 @@ import (
 	"ws-quant/core"
 	"ws-quant/pkg/feishu"
 	"ws-quant/pkg/mapper"
+	"ws-quant/pkg/util"
 )
+
+// 本文件主要用户 open pos
 
 func (s *Service) OpenMarginLimit(symbol, price, size, side string) (msg string) {
 	if s.openMarginOrder != nil {
@@ -38,12 +41,14 @@ func (s *Service) OpenFutureLimit(symbol, price, size, side string) (msg string)
 // TradeLimit instId: EOS-USDT, EOS-USDT-SWAP是合约
 func (s *Service) TradeLimit(instId, price, size, side, posSide string) (msg string) {
 	closePos := posSide == cex.Close
+	myOid := util.GenerateOrder()
 	arg := map[string]interface{}{
 		"tdMode":     "cross", // 全仓币币， 全仓永续
 		"side":       strings.ToLower(side),
 		"instId":     instId,
 		"sz":         size,
 		"px":         price,
+		"clOrdId":    myOid,
 		"ccy":        "USDT",
 		"ordType":    "limit", //market, limit, ioc
 		"reduceOnly": closePos,
@@ -71,6 +76,7 @@ func (s *Service) TradeLimit(instId, price, size, side, posSide string) (msg str
 		PosSide:    posSide,
 		State:      string(core.TRIGGER),
 		OrderId:    "",
+		MyOid:      myOid,
 		OrderType:  orderType,
 		Closed:     "N",
 		Created:    time.Now(),
@@ -80,6 +86,7 @@ func (s *Service) TradeLimit(instId, price, size, side, posSide string) (msg str
 		numPerSize := symb.GetFutureLotByInstId(instId)
 		order.NumPerSize = numPerSize
 	}
+
 	// 异步以便提高主流程效率
 	go func() {
 		_ = mapper.Insert(s.db, order)

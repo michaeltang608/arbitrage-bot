@@ -30,8 +30,8 @@ func AdjustClosePosSize(size float64, side string, cexName string) string {
 // AdjustPrice 调整价格 千分之一便于成交
 func AdjustPrice(price float64, side string) string {
 	priceStr := fmt.Sprintf("%v", price)
-	priceStrAry := strings.Split(priceStr, ".")
-	decimalLen := len(priceStrAry[1])
+	// 多加一位精确度
+	decimalLen := calDecimalLen(priceStr) + 1
 
 	priceAdjusted := 0.0
 	if side == "buy" {
@@ -40,4 +40,17 @@ func AdjustPrice(price float64, side string) string {
 		priceAdjusted = price * (1 - 0.002)
 	}
 	return strconv.FormatFloat(priceAdjusted, 'f', decimalLen, 64)
+}
+
+func calDecimalLen(fStr string) int {
+	if strings.Contains(fStr, "e-") {
+		ary := strings.Split(fStr, "e-")
+		front := ary[0]
+		end := ary[1]
+		frontNum := len(strings.Split(front, ".")[1])
+		endNum, _ := strconv.ParseInt(end, 10, 64)
+		return frontNum + int(endNum)
+	} else {
+		return len(strings.Split(fStr, ".")[1])
+	}
 }
