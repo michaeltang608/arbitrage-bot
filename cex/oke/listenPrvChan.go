@@ -172,7 +172,6 @@ func (s *Service) processUpdateOrder(msgBytes []byte) {
 	orderId := string(val.GetStringBytes("ordId"))
 	myOid := string(val.GetStringBytes("clOrdId"))
 	state := string(val.GetStringBytes("state"))
-	//price := string(val.GetStringBytes("avgPx"))
 
 	side := fastjson.GetString(msgBytes, "data", "0", "side")
 	instId := fastjson.GetString(msgBytes, "data", "0", "instId")
