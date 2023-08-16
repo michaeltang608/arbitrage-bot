@@ -41,7 +41,7 @@ func (s *Service) OpenFutureLimit(symbol, price, size, side string) (msg string)
 // TradeLimit instId: EOS-USDT, EOS-USDT-SWAP是合约
 func (s *Service) TradeLimit(instId, price, size, side, posSide string) (msg string) {
 	closePos := posSide == cex.Close
-	myOid := util.GenerateOrder()
+	myOid := util.GenerateOrder("OP")
 	arg := map[string]interface{}{
 		"tdMode":     "cross", // 全仓币币， 全仓永续
 		"side":       strings.ToLower(side),

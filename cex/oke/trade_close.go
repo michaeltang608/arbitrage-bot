@@ -22,6 +22,7 @@ type CloseReq struct {
 	InstId  string `json:"instId"`
 	MgnMode string `json:"mgnMode"` // 默认 cross
 	Ccy     string `json:"ccy"`
+	ClOrdId string `json:"clOrdId"`
 }
 
 func (s *Service) CloseOrder(orderType string) string {
@@ -35,7 +36,9 @@ func (s *Service) CloseOrder(orderType string) string {
 		return msg
 	}
 
-	s.createCloseOrder(openOrder)
+	myOid := util.GenerateOrder("CL")
+	// 先持久化
+	s.insertCloseOrder(openOrder, myOid)
 	instId := openOrder.InstId
 	// do request
 	api := "/api/v5/trade/close-position"
@@ -43,6 +46,7 @@ func (s *Service) CloseOrder(orderType string) string {
 		InstId:  instId,
 		MgnMode: "cross",
 		Ccy:     "USDT",
+		ClOrdId: myOid,
 	}
 	reqBytes, _ := json.Marshal(&req)
 	body := string(reqBytes)
@@ -50,7 +54,7 @@ func (s *Service) CloseOrder(orderType string) string {
 	return resp
 }
 
-func (s *Service) createCloseOrder(openOrder *models.Orders) {
+func (s *Service) insertCloseOrder(openOrder *models.Orders, myOid string) {
 	side := consts.Buy
 	if openOrder.Side == consts.Buy {
 		side = consts.Sell
@@ -61,9 +65,9 @@ func (s *Service) createCloseOrder(openOrder *models.Orders) {
 		InstId:    instId,
 		Cex:       cex.OKE,
 		Side:      side,
-		PosSide:   "close",
+		PosSide:   consts.Close,
 		State:     string(core.TRIGGER),
-		OrderId:   "",
+		MyOid:     myOid,
 		OrderType: openOrder.OrderType,
 		Closed:    "N",
 		Created:   time.Now(),
@@ -87,19 +91,6 @@ func (s *Service) CancelOrder(instId, orderId string) string {
 		InstId: instId,
 		OrdId:  orderId,
 	}
-
-	myOid := util.GenerateOrder()
-	order := &models.Orders{
-		InstId:  instId,
-		Cex:     cex.OKE,
-		PosSide: consts.Close,
-		State:   string(core.TRIGGER),
-		MyOid:   myOid,
-		Closed:  "N",
-		Created: time.Now(),
-		Updated: time.Now(),
-	}
-	_ = mapper.Insert(s.db, order)
 
 	reqBytes, _ := json.Marshal(&req)
 	body := string(reqBytes)
