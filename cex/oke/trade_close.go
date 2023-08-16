@@ -87,6 +87,20 @@ func (s *Service) CancelOrder(instId, orderId string) string {
 		InstId: instId,
 		OrdId:  orderId,
 	}
+
+	myOid := util.GenerateOrder()
+	order := &models.Orders{
+		InstId:  instId,
+		Cex:     cex.OKE,
+		PosSide: consts.Close,
+		State:   string(core.TRIGGER),
+		MyOid:   myOid,
+		Closed:  "N",
+		Created: time.Now(),
+		Updated: time.Now(),
+	}
+	_ = mapper.Insert(s.db, order)
+
 	reqBytes, _ := json.Marshal(&req)
 	body := string(reqBytes)
 	resp := execOrder(body, http.MethodPost, api)
@@ -119,6 +133,7 @@ func execOrder(body, method, api string) string {
 		"OK-ACCESS-PASSPHRASE": pwd,
 		"CONTENT-TYPE":         "application/json",
 	}
+
 	respBytes := util.HttpRequest(method, baseHttpUrl+api, body, headers)
 	resp := string(respBytes)
 	log.Info("返回的close的结果是=%v, size=%v", resp, len(resp))
