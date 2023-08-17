@@ -101,7 +101,7 @@ func (bs *backendServer) QuantRun() error {
 	bs.PostInit()
 	// router
 	bs.router()
-	feishu.Send("program start successfully")
+	//feishu.Send("program start successfully")
 	err := bs.engine.Run(":8083")
 	return err
 }

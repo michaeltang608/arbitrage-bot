@@ -150,8 +150,14 @@ func (s *Service) listenAndNotifyPrivate() {
 
 		// 5.1 收到order 新建数据
 		if fastjson.GetString(msgBytes, "op") == "order" {
-			//process new order: ignore
+			//maybe place order fail here, log reason and alert
 			log.Info("新订单收到数据: %v", msg)
+			sCode := fastjson.GetString(msgBytes, "data", "0", "sCode")
+			if sCode != "" && sCode != "0" {
+				sMsg := fastjson.GetString(msgBytes, "data", "0", "sMsg")
+				log.Error("订单失败：%v", sMsg)
+				feishu.Send(sMsg)
+			}
 			continue
 		}
 
@@ -241,35 +247,6 @@ func (s *Service) processUpdateOrder(msgBytes []byte) {
 	}
 
 }
-
-//func (s *service) processNewOrder(msgBytes []byte) {
-//	log.Info("新订单数据：%v", string(msgBytes))
-//	if fastjson.GetString(msgBytes, "code") == "1" {
-//		feishu.Send("ok_order fail:" + fastjson.GetString(msgBytes, "data", "0", "sMsg"))
-//	} else if fastjson.GetString(msgBytes, "code") == "0" {
-//		orderId := fastjson.GetString(msgBytes, "data", "0", "ordId")
-//		var id uint32
-//		if s.openOrder != nil && s.openOrder.OrderId == "" {
-//			s.openOrder.OrderId = orderId
-//			s.openOrder.PosSide = string(core.PLACED)
-//			id = s.openOrder.ID
-//
-//		} else if s.closeOrder != nil && s.closeOrder.OrderId == "" {
-//			s.closeOrder.OrderId = orderId
-//			s.closeOrder.PosSide = string(core.PLACED)
-//			id = s.closeOrder.ID
-//
-//		} else {
-//			log.Info("未知新订单数据")
-//		}
-//		updateEle := &models.Orders{
-//			PosSide:   string(core.PLACED),
-//			OrderId: orderId,
-//			Updated: time.Now(),
-//		}
-//		_ = mapper.UpdateById(s.db, id, updateEle)
-//	}
-//}
 
 func (s *Service) processBalance(msgBytes []byte) {
 	val, _ := fastjson.ParseBytes(msgBytes)

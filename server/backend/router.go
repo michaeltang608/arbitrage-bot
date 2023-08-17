@@ -11,6 +11,7 @@ func (bs *backendServer) tradeRouteGroup() router.RouteGroup {
 		Comment: "交易类",
 		RouteList: []router.Route{
 			router.NewRoute(http.MethodPost, "/openLimit", bs.openLimit, "open"),
+			router.NewRoute(http.MethodPost, "/openStrategy", bs.openLimit, "open"),
 			router.NewRoute(http.MethodPost, "/queryLiveOrder", bs.queryLiveOrder, "query"),
 			router.NewRoute(http.MethodPost, "/closeMarket", bs.closeMarket, "close"),
 			router.NewRoute(http.MethodPost, "/cancel", bs.cancelOrder, "cancel"),
