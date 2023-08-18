@@ -10,6 +10,7 @@ import (
 	"ws-quant/cex/models"
 	"ws-quant/cex/oke"
 	"ws-quant/common/consts"
+	"ws-quant/common/orderstate"
 	"ws-quant/common/symb"
 	"ws-quant/models/bean"
 	"ws-quant/pkg/db"
@@ -43,8 +44,9 @@ type backendServer struct {
 	strategyState int32 //0: 默认, 1 触发开仓策略，2 某cex完成open单，3 both cex完成open单；11 触发平仓；12 某cex完成close; 13 both cex 完成cex, 然后转0
 	execStateChan chan bean.ExecState
 
-	marginTrack *TrackBean
-	futureTrack *TrackBean
+	trackBeanChan chan bean.TrackBean
+	marginTrack   *bean.TrackBean
+	futureTrack   *bean.TrackBean
 }
 
 func New() server.Server {
@@ -57,7 +59,7 @@ func New() server.Server {
 func (bs *backendServer) QuantRun() error {
 	// 连db
 	bs.dbClient()
-	bs.okeService = oke.New(bs.tickerChan, bs.execStateChan, bs.db)
+	bs.okeService = oke.New(bs.tickerChan, bs.execStateChan, bs.trackBeanChan, bs.db)
 	go func() {
 		defer e.Recover()()
 		bs.okeService.Run()
@@ -285,12 +287,34 @@ func (bs *backendServer) initMap() {
 func (bs *backendServer) PostInit() {
 	go func() {
 		defer e.Recover()()
+		bs.marginTrack = nil
 		time.Sleep(time.Second * 5)
 		openMarginOrder := bs.okeService.GetOpenOrder(consts.Margin)
 		openFutureOrder := bs.okeService.GetOpenOrder(consts.Future)
 
 		closeMarginOrder := bs.okeService.GetCloseOrder(consts.Margin)
 		closeFutureOrder := bs.okeService.GetCloseOrder(consts.Future)
+
+		if openMarginOrder != nil {
+			bs.marginTrack = &bean.TrackBean{}
+			if closeMarginOrder != nil {
+				bs.marginTrack.State = orderstate.Closed
+			} else {
+				bs.marginTrack.State = openMarginOrder.State
+				bs.marginTrack.Side = openMarginOrder.Side
+				bs.marginTrack.OrderType = openMarginOrder.OrderType
+			}
+		}
+		if openFutureOrder != nil {
+			bs.futureTrack = &bean.TrackBean{}
+			if closeFutureOrder != nil {
+				bs.futureTrack.State = orderstate.Closed
+			} else {
+				bs.futureTrack.State = openFutureOrder.State
+				bs.futureTrack.Side = openFutureOrder.Side
+				bs.futureTrack.OrderType = openFutureOrder.OrderType
+			}
+		}
 
 		if closeMarginOrder != nil || closeFutureOrder != nil {
 			bs.strategyState = int32(StateCloseSignalled)

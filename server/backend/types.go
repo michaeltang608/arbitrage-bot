@@ -48,10 +48,3 @@ type MarginFutureTicker struct {
 	AskFuture float64
 	BidFuture float64
 }
-
-type TrackBean struct {
-	State int
-	Side  string
-	SlPrc float64
-	TpPrc float64
-}

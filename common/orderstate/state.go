@@ -1,10 +1,11 @@
 package orderstate
 
 const (
-	Nil = iota
-	Failed
-	Live
-	Filled
-	Closed
-	Cancelled
+	TRIGGER = "trigger"
+	Failed  = "failed"
+	Live    = "live"
+
+	Filled    = "filled"
+	Closed    = "closed"
+	Cancelled = "canceled"
 )

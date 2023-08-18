@@ -27,6 +27,7 @@ type Service struct {
 
 	tickerChan    chan bean.TickerBean
 	execStateChan chan bean.ExecState
+	trackBeanChan chan bean.TrackBean
 	//strategyExecOrdersChan chan *models.Orders
 
 	usdtBal          float64 //余额
@@ -38,15 +39,18 @@ type Service struct {
 	debtMsgMap       map[string]string
 }
 
-func New(tickerChan chan bean.TickerBean, execStateChan chan bean.ExecState,
+func New(
+	tickerChan chan bean.TickerBean,
+	execStateChan chan bean.ExecState,
+	trackBeanChan chan bean.TrackBean,
 	db_ *xorm.Engine) *Service {
 	s := &Service{
 		tickerChan:    tickerChan,
-		db:            db_,
 		execStateChan: execStateChan,
+		trackBeanChan: trackBeanChan,
+		db:            db_,
 		debtMsgMap:    make(map[string]string),
 	}
-
 	s.ReloadOrders()
 	return s
 }

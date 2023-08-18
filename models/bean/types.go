@@ -24,3 +24,12 @@ type ExecState struct {
 	Side      string //buy sell
 	OrderType string //margin, future
 }
+
+type TrackBean struct {
+	State     string
+	Side      string
+	OrderType string
+	OpenPrc   string //actual prc
+	SlPrc     string
+	TpPrc     string
+}

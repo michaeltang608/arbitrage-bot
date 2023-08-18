@@ -20,11 +20,12 @@ const (
 )
 
 type OrderReq struct {
-	InstId  string `json:"instId"`
-	Price   string `json:"price"`
-	Size    string `json:"size"`
-	Side    string `json:"side"`
-	PosSide string `json:"posSide"` //open/close
+	InstType string `json:"instType"`
+	Symbol   string `json:"instId"`
+	Price    string `json:"price"`
+	Size     string `json:"size"`
+	Side     string `json:"side"`
+	PosSide  string `json:"posSide"` //open/close
 }
 
 type Order struct {

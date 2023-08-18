@@ -14,3 +14,10 @@ func SliceContains(slice []string, ele string, caseSensitive bool) (index int) {
 	}
 	return -1
 }
+
+func Select(cond bool, one string, two string) string {
+	if cond {
+		return one
+	}
+	return two
+}

@@ -6,18 +6,6 @@ import (
 	"ws-quant/pkg/gintool"
 )
 
-func (bs *backendServer) openStrategy(cxt *gin.Context) {
-	var req core.OrderReq
-	err := cxt.Bind(&req)
-	if err != nil {
-		gintool.Error(cxt, err)
-		return
-	}
-	msg := bs.okeService.StrategyOpenLimit(req.InstId, req.Price, req.Size, req.Side, "open")
-	gintool.SucMsg(cxt, msg)
-	return
-}
-
 func (bs *backendServer) openLimit(cxt *gin.Context) {
 	var req core.OrderReq
 	err := cxt.Bind(&req)
@@ -25,7 +13,7 @@ func (bs *backendServer) openLimit(cxt *gin.Context) {
 		gintool.Error(cxt, err)
 		return
 	}
-	msg := bs.okeService.TradeLimit(req.InstId, req.Price, req.Size, req.Side, "open")
+	msg := bs.okeService.TradeLimit(req.InstType, req.Symbol, req.Price, req.Size, req.Side, "open")
 	gintool.SucMsg(cxt, msg)
 	return
 }

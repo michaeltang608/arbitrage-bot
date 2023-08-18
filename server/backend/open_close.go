@@ -3,6 +3,7 @@ package backend
 import (
 	"fmt"
 	"ws-quant/common/consts"
+	"ws-quant/common/insttype"
 	"ws-quant/common/symb"
 	"ws-quant/pkg/feishu"
 	"ws-quant/pkg/util"
@@ -43,8 +44,8 @@ func (bs *backendServer) execOpenLimit(openSignal int, t *MarginFutureTicker, cu
 		}
 		price := util.AdjustPrice(priceF, side)
 		log.Info("ok margin prepare open pos, side=%v, symbol=%v, price=%v, size=%v\n", side, t.Symbol, price, size)
-		msg := bs.okeService.OpenMarginLimit(t.Symbol, price, size, side)
-		log.Info("ok margin-open pos result:" + msg)
+		openResult := bs.okeService.OpenLimit(insttype.Margin, t.Symbol, price, size, side)
+		log.Info("ok margin-open pos result:" + openResult)
 	}(tradeAmt)
 	go func(size int) {
 		// future
@@ -56,8 +57,8 @@ func (bs *backendServer) execOpenLimit(openSignal int, t *MarginFutureTicker, cu
 		}
 		price := util.AdjustPrice(priceF, side)
 		log.Info("prepare to open pos, side=%v, symbol=%v, price=%v, size=%v\n", side, t.Symbol, price, size)
-		msg := bs.okeService.OpenFutureLimit(t.Symbol, price, numutil.FormatInt(size), side)
-		log.Info("ok future open-pos result:" + msg)
+		openResult := bs.okeService.OpenLimit(insttype.Future, t.Symbol, price, numutil.FormatInt(size), side)
+		log.Info("ok future open-pos result:" + openResult)
 
 	}(futureSize)
 	feishu.Send("strategy open triggered")
