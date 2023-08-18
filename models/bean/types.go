@@ -20,7 +20,7 @@ type Ticker struct {
 }
 
 type ExecState struct {
-	PosSide   string //filled close
+	PosSide   string //open close
 	Side      string //buy sell
 	OrderType string //margin, future
 }

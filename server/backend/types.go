@@ -30,3 +30,28 @@ type SignalCalBean struct {
 	Ts0    int64
 	Ts1    int64
 }
+
+type Oppor struct {
+	Symbol   string  //交易对，大写，如 EOS
+	OpenDiff float64 // 如 1.0
+	MaxDiff  float64 // 真实中最大的max diff
+	MaxPrice float64
+	MinPrice float64
+	MaxCex   string
+	MinCex   string
+}
+
+type MarginFutureTicker struct {
+	Symbol    string
+	AskMargin float64
+	BidMargin float64
+	AskFuture float64
+	BidFuture float64
+}
+
+type TrackBean struct {
+	State int
+	Side  string
+	SlPrc float64
+	TpPrc float64
+}
