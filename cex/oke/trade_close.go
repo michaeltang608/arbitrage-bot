@@ -25,11 +25,11 @@ type CloseReq struct {
 	ClOrdId string `json:"clOrdId"`
 }
 
-func (s *Service) CloseOrder(orderType string) string {
-	openOrder := s.GetOpenOrder(orderType)
+func (s *Service) CloseOrder(instType string) string {
+	openOrder := s.GetOpenOrder(instType)
 
 	if openOrder == nil || openOrder.State != orderstate.Filled {
-		msg := fmt.Sprintf("收到close margin, but no open %s found", orderType)
+		msg := fmt.Sprintf("收到close margin, but no open %s found", instType)
 		feishu.Send(msg)
 		return msg
 	}

@@ -56,8 +56,8 @@ func New(
 	return s
 }
 
-func (s *Service) GetOpenOrder(orderType string) *models.Orders {
-	if orderType == insttype.Margin {
+func (s *Service) GetOpenOrder(instType string) *models.Orders {
+	if instType == insttype.Margin {
 		return s.openMarginOrder
 	}
 	return s.openFutureOrder

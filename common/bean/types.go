@@ -31,9 +31,8 @@ type TrackBean struct {
 	Side      string
 	InstType  string
 	MyOidOpen string
-	OpenPrc   string //actual prc
-	SlPrc     float64
-	TpPrc     string
+	OpenPrc   string  //actual prc
+	SlPrc     float64 //移动止损价
 }
 
 type OrderReq struct {

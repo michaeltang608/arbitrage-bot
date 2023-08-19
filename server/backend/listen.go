@@ -82,30 +82,48 @@ func (bs *backendServer) listenAndExec() {
 func (bs *backendServer) listenAndExecStTp() {
 	for {
 		select {
-		case trackBean := <-bs.trackBeanChan:
+		case ticker := <-bs.trackTickerChan:
 			if bs.marginTrack == nil && bs.futureTrack == nil {
 				continue
 			}
-			if bs.marginTrack != nil {
-				if bs.marginTrack.State == orderstate.Filled {
-					if bs.marginTrack.Symbol != trackBean.Symbol {
-						feishu.Send("exec symbol 和 marginTrack中的symbol不一致")
-						continue
-					}
-					if bs.marginTrack.Side == consts.Buy {
-					}
+			if bs.marginTrack != nil && bs.marginTrack.State == orderstate.Filled {
+				if bs.marginTrack.Symbol != ticker.SymbolName {
+					feishu.Send("exec symbol 和 marginTrack中的symbol不一致")
+					continue
+				}
+				if checkAndModifySl(ticker, bs.marginTrack) {
+					bs.okeService.CloseOrder(bs.marginTrack.InstType)
+				} else {
+					// 确定移动止盈
+
 				}
 			}
 		}
 	}
 }
 
-func matchSl(ticker bean.TickerBean, side string, sl string) {
+// check if Sl triggered and move/modify sl if necessary
+func checkAndModifySl(ticker bean.TickerBean, track *bean.TrackBean) bool {
+	side := track.Side
+	sl := track.SlPrc
 	if side == consts.Buy {
-		if ticker.PriceBestBid <= numutil.Parse(sl) {
+		if ticker.PriceBestBid <= sl {
+			log.Info("目前bestBid 已经触发该买单止损")
+			return true
+		} else {
+			openPrcFloat := numutil.Parse(track.OpenPrc)
+			if ticker.PriceBestBid > openPrcFloat {
+				//has profit, step by 0.5 pct todo
 
+			}
+		}
+	} else {
+		if ticker.PriceBestAsk >= sl {
+			log.Info("目前bestAsk 已经触发该卖单止损")
+			return true
 		}
 	}
+	return false
 }
 
 func (bs *backendServer) listenTrackBean() {
