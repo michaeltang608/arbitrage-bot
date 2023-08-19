@@ -232,6 +232,12 @@ func (s *Service) processUpdateOrder(msgBytes []byte) {
 				updateOpen := &models.Orders{Closed: "Y", Updated: time.Now()}
 				_ = mapper.UpdateById(s.db, openOrder.ID, updateOpen)
 				log.Info("close掉开仓订单")
+				// report trackBean 不需要处理了
+				s.trackBeanChan <- bean.TrackBean{
+					State:     orderstate.Closed,
+					InstType:  openOrder.OrderType,
+					MyOidOpen: openOrder.MyOid,
+				}
 			}
 		}
 	}

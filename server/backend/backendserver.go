@@ -27,9 +27,13 @@ var log = logger.NewLog("backend")
 type backendServer struct {
 	config *models.Config
 
-	tickerChan        chan bean.TickerBean //负责监听接收数据
+	tickerChan      chan bean.TickerBean //负责监听接收数据
+	trackTickerChan chan bean.TickerBean //负责 sl tp 跟进
+
+	execStateChan chan bean.ExecState
+	trackBeanChan chan bean.TrackBean
+
 	OkMarginFutureMap map[string]*MarginFutureTicker
-	CalChan           chan SignalCalBean //负责分析数据
 	okeService        *oke.Service
 	stopChan          chan struct{}
 
@@ -40,11 +44,9 @@ type backendServer struct {
 	executingSymbol     string //如eos
 
 	strategyState int32 //0: 默认, 1 触发开仓策略，2 某cex完成open单，3 both cex完成open单；11 触发平仓；12 某cex完成close; 13 both cex 完成cex, 然后转0
-	execStateChan chan bean.ExecState
 
-	trackBeanChan chan bean.TrackBean
-	marginTrack   *bean.TrackBean
-	futureTrack   *bean.TrackBean
+	marginTrack *bean.TrackBean
+	futureTrack *bean.TrackBean
 }
 
 func New() server.Server {
@@ -73,6 +75,16 @@ func (bs *backendServer) QuantRun() error {
 	go func() {
 		defer e.Recover()()
 		bs.listenState()
+	}()
+
+	go func() {
+		defer e.Recover()()
+		bs.listenTrackBean()
+	}()
+
+	go func() {
+		defer e.Recover()()
+		bs.listenAndExecStTp()
 	}()
 	// schedule 一些定时任务
 	bs.scheduleJobs()

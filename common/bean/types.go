@@ -32,7 +32,7 @@ type TrackBean struct {
 	InstType  string
 	MyOidOpen string
 	OpenPrc   string //actual prc
-	SlPrc     string
+	SlPrc     float64
 	TpPrc     string
 }
 

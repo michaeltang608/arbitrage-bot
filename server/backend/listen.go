@@ -13,6 +13,8 @@ import (
 	"ws-quant/common/orderstate"
 	"ws-quant/pkg/feishu"
 	"ws-quant/pkg/mapper"
+	"ws-quant/pkg/util/numutil"
+	"ws-quant/pkg/util/prcutil"
 )
 
 // 负责监听和搜集数据
@@ -24,6 +26,12 @@ func (bs *backendServer) listenAndExec() {
 			if !ok {
 				log.Error("未能找到%v中map数据", tickerBean.SymbolName)
 				continue
+			}
+
+			//send to strategy monitor
+			if tickerBean.SymbolName == bs.executingSymbol {
+				log.Info("tickerBean send to strategy monitor")
+				bs.trackTickerChan <- tickerBean
 			}
 
 			if strings.HasSuffix(tickerBean.InstId, "-SWAP") {
@@ -70,6 +78,36 @@ func (bs *backendServer) listenAndExec() {
 	}
 }
 
+// combine ticker and track bean to exec st or tp
+func (bs *backendServer) listenAndExecStTp() {
+	for {
+		select {
+		case trackBean := <-bs.trackBeanChan:
+			if bs.marginTrack == nil && bs.futureTrack == nil {
+				continue
+			}
+			if bs.marginTrack != nil {
+				if bs.marginTrack.State == orderstate.Filled {
+					if bs.marginTrack.Symbol != trackBean.Symbol {
+						feishu.Send("exec symbol 和 marginTrack中的symbol不一致")
+						continue
+					}
+					if bs.marginTrack.Side == consts.Buy {
+					}
+				}
+			}
+		}
+	}
+}
+
+func matchSl(ticker bean.TickerBean, side string, sl string) {
+	if side == consts.Buy {
+		if ticker.PriceBestBid <= numutil.Parse(sl) {
+
+		}
+	}
+}
+
 func (bs *backendServer) listenTrackBean() {
 	for {
 		select {
@@ -110,7 +148,22 @@ func (bs *backendServer) listenTrackBean() {
 				continue
 			}
 			currentTrackBean.State = trackBean.State
+			if trackBean.OpenPrc != "" {
+				currentTrackBean.OpenPrc = trackBean.OpenPrc
+				currentTrackBean.SlPrc = prcutil.AdjustPriceFloat(
+					numutil.Parse(trackBean.OpenPrc), currentTrackBean.Side == consts.Sell, 100)
 
+			}
+
+			if trackBean.State == orderstate.Closed {
+				log.Info("平仓，关闭追踪")
+				if trackBean.InstType == insttype.Margin {
+					bs.marginTrack = nil
+				}
+				if trackBean.InstType == insttype.Future {
+					bs.futureTrack = nil
+				}
+			}
 		}
 	}
 }

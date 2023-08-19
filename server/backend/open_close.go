@@ -8,6 +8,7 @@ import (
 	"ws-quant/pkg/feishu"
 	"ws-quant/pkg/util"
 	"ws-quant/pkg/util/numutil"
+	"ws-quant/pkg/util/prcutil"
 )
 
 func (bs *backendServer) execOpenLimit(openSignal int, t *MarginFutureTicker, curDiff float64) {
@@ -42,7 +43,7 @@ func (bs *backendServer) execOpenLimit(openSignal int, t *MarginFutureTicker, cu
 			side = "sell"
 			priceF = t.BidMargin
 		}
-		price := util.AdjustPrice(priceF, side)
+		price := prcutil.AdjustPrice(priceF, side)
 		log.Info("ok margin prepare open pos, side=%v, symbol=%v, price=%v, size=%v\n", side, t.Symbol, price, size)
 		openResult := bs.okeService.OpenOrderLimit(insttype.Margin, t.Symbol, price, size, side)
 		log.Info("ok margin-open pos result:" + openResult)
@@ -55,7 +56,7 @@ func (bs *backendServer) execOpenLimit(openSignal int, t *MarginFutureTicker, cu
 			side = "buy"
 			priceF = t.AskFuture
 		}
-		price := util.AdjustPrice(priceF, side)
+		price := prcutil.AdjustPrice(priceF, side)
 		log.Info("prepare to open pos, side=%v, symbol=%v, price=%v, size=%v\n", side, t.Symbol, price, size)
 		openResult := bs.okeService.OpenOrderLimit(insttype.Future, t.Symbol, price, numutil.FormatInt(size), side)
 		log.Info("ok future open-pos result:" + openResult)
