@@ -8,11 +8,11 @@ import (
 	"time"
 	"ws-quant/cex"
 	"ws-quant/cex/models"
+	"ws-quant/common/bean"
 	"ws-quant/common/consts"
 	"ws-quant/common/insttype"
 	"ws-quant/common/orderstate"
 	"ws-quant/common/symb"
-	"ws-quant/models/bean"
 	"ws-quant/pkg/feishu"
 	"ws-quant/pkg/mapper"
 	"ws-quant/pkg/util"
@@ -66,9 +66,10 @@ func (s *Service) TradeLimit(r bean.OrderReq) (msg string) {
 
 	// report state
 	s.trackBeanChan <- bean.TrackBean{
-		State:    orderstate.TRIGGER,
-		Side:     r.Side,
-		InstType: r.InstType,
+		State:     orderstate.TRIGGER,
+		Side:      r.Side,
+		InstType:  r.InstType,
+		MyOidOpen: myOid,
 	}
 
 	// 异步以便提高主流程效率

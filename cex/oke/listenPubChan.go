@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 	"ws-quant/cex"
+	"ws-quant/common/bean"
 	"ws-quant/common/symb"
-	"ws-quant/models/bean"
 	"ws-quant/pkg/feishu"
 )
 

@@ -9,8 +9,9 @@ import (
 	"strings"
 	"time"
 	"ws-quant/cex/models"
+	"ws-quant/common/bean"
 	"ws-quant/common/consts"
-	"ws-quant/models/bean"
+	"ws-quant/common/orderstate"
 	"ws-quant/pkg/feishu"
 	"ws-quant/pkg/mapper"
 	"ws-quant/pkg/util"
@@ -154,8 +155,22 @@ func (s *Service) listenAndNotifyPrivate() {
 			log.Info("新订单收到数据: %v", msg)
 			sCode := fastjson.GetString(msgBytes, "data", "0", "sCode")
 			if sCode != "" && sCode != "0" {
+				myOid := fastjson.GetString(msgBytes, "data", "0", "clOrdId")
 				sMsg := fastjson.GetString(msgBytes, "data", "0", "sMsg")
 				log.Error("订单失败：%v", sMsg)
+				orderDb := &models.Orders{MyOid: myOid}
+				has := mapper.Get(s.db, orderDb)
+				if !has {
+					feishu.Send("未找到 myOid = " + myOid)
+					continue
+				}
+				//report
+				s.trackBeanChan <- bean.TrackBean{
+					State:     orderstate.Failed,
+					Side:      orderDb.Side,
+					InstType:  orderDb.OrderType,
+					MyOidOpen: myOid,
+				}
 				feishu.Send(sMsg)
 			}
 			continue
@@ -240,6 +255,18 @@ func (s *Service) processUpdateOrder(msgBytes []byte) {
 		updateModel.FilledTime = time.Now()
 	}
 	_ = mapper.UpdateById(s.db, orderDb.ID, updateModel)
+
+	//report
+	trackBean := bean.TrackBean{}
+	trackBean.MyOidOpen = myOid
+	//canceled, live, filled
+	trackBean.State = state
+	if state == orderstate.Filled {
+		// 很重要的一个参数
+		trackBean.OpenPrc = prc
+	}
+	s.trackBeanChan <- trackBean
+
 	s.ReloadOrders()
 	// 向上通知不用急，不能太快触发close, 否则拿不到最新的订单状态
 	if state == consts.Filled {

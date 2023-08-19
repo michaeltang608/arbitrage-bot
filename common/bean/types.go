@@ -26,12 +26,13 @@ type ExecState struct {
 }
 
 type TrackBean struct {
-	State    string
-	Side     string
-	InstType string
-	OpenPrc  string //actual prc
-	SlPrc    string
-	TpPrc    string
+	State     string
+	Side      string
+	InstType  string
+	MyOidOpen string
+	OpenPrc   string //actual prc
+	SlPrc     string
+	TpPrc     string
 }
 
 type OrderReq struct {

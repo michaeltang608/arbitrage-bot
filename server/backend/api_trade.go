@@ -2,7 +2,7 @@ package backend
 
 import (
 	"github.com/gin-gonic/gin"
-	"ws-quant/models/bean"
+	"ws-quant/common/bean"
 	"ws-quant/pkg/gintool"
 )
 

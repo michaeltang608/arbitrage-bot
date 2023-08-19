@@ -7,8 +7,6 @@ const (
 	Sell        = "sell"
 
 	Close  = "close"
-	Market = "market"
-	Limit  = "limit"
 	Margin = "Margin"
 	Future = "Future"
 	Filled = "filled"

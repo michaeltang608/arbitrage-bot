@@ -6,6 +6,5 @@ const (
 	Live    = "live"
 
 	Filled    = "filled"
-	Closed    = "closed"
 	Cancelled = "canceled"
 )
