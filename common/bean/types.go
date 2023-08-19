@@ -27,6 +27,7 @@ type ExecState struct {
 
 type TrackBean struct {
 	State     string
+	Symbol    string
 	Side      string
 	InstType  string
 	MyOidOpen string

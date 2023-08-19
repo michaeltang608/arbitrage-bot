@@ -26,11 +26,9 @@ type CloseReq struct {
 }
 
 func (s *Service) CloseOrder(orderType string) string {
-	openOrder := s.openMarginOrder
-	if orderType == consts.Future {
-		openOrder = s.openFutureOrder
-	}
-	if openOrder == nil || openOrder.State != consts.Filled {
+	openOrder := s.GetOpenOrder(orderType)
+
+	if openOrder == nil || openOrder.State != orderstate.Filled {
 		msg := fmt.Sprintf("收到close margin, but no open %s found", orderType)
 		feishu.Send(msg)
 		return msg

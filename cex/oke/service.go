@@ -8,6 +8,7 @@ import (
 	"ws-quant/cex/models"
 	"ws-quant/common/bean"
 	"ws-quant/common/consts"
+	"ws-quant/common/insttype"
 	"ws-quant/pkg/e"
 	logger "ws-quant/pkg/log"
 	"xorm.io/xorm"
@@ -56,7 +57,7 @@ func New(
 }
 
 func (s *Service) GetOpenOrder(orderType string) *models.Orders {
-	if orderType == consts.Margin {
+	if orderType == insttype.Margin {
 		return s.openMarginOrder
 	}
 	return s.openFutureOrder

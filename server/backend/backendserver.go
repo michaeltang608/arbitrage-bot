@@ -246,3 +246,10 @@ func (bs *backendServer) calFutureSizeAndTradeAmt(symbol string, symbolPrc, numP
 	actualTradeAmt = actualSymNum * symbolPrc
 	return actualTradeAmt, futureSize
 }
+
+func (bs *backendServer) getTrackBean(instType string) *bean.TrackBean {
+	if instType == insttype.Margin {
+		return bs.marginTrack
+	}
+	return bs.futureTrack
+}

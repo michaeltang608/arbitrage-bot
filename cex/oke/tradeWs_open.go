@@ -18,7 +18,7 @@ import (
 	"ws-quant/pkg/util"
 )
 
-func (s *Service) OpenLimit(instType, symbol, price, size, side string) (msg string) {
+func (s *Service) OpenOrderLimit(instType, symbol, price, size, side string) (msg string) {
 
 	if s.GetOpenOrder(instType) != nil {
 		errMsg := fmt.Sprintf("%s，勿再重复开仓", instType)
@@ -68,6 +68,7 @@ func (s *Service) TradeLimit(r bean.OrderReq) (msg string) {
 	s.trackBeanChan <- bean.TrackBean{
 		State:     orderstate.TRIGGER,
 		Side:      r.Side,
+		Symbol:    strings.ToUpper(r.Symbol),
 		InstType:  r.InstType,
 		MyOidOpen: myOid,
 	}

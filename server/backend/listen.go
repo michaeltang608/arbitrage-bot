@@ -77,49 +77,40 @@ func (bs *backendServer) listenTrackBean() {
 			msg := fmt.Sprintf("收到最新的 trackBean: %+v", trackBean)
 			feishu.Send(msg)
 
-			if trackBean.InstType == insttype.Margin {
-				if bs.marginTrack == nil {
-					if trackBean.State != orderstate.TRIGGER {
-						errMsg := fmt.Sprintf("Alert! trackBean margin未初始化，直接收到state = %s", trackBean.State)
-						feishu.Send(errMsg)
-						log.Error(errMsg)
-						continue
-					}
-					bs.marginTrack = &bean.TrackBean{InstType: insttype.Margin}
-					bs.marginTrack.Side = trackBean.Side
-					bs.marginTrack.MyOidOpen = trackBean.MyOidOpen
-				}
-
-				if bs.marginTrack.MyOidOpen != trackBean.MyOidOpen {
-					errMsg := fmt.Sprintf("Alert! trackBean margin myOid不符合，myOid= %d", trackBean.MyOidOpen)
+			if bs.getTrackBean(trackBean.InstType) == nil {
+				if trackBean.State != orderstate.TRIGGER {
+					errMsg := fmt.Sprintf("Alert! trackBean %s 未初始化，直接收到state = %s",
+						trackBean.InstType, trackBean.State)
 					feishu.Send(errMsg)
 					log.Error(errMsg)
 					continue
 				}
-				bs.marginTrack.State = trackBean.State
+				newTrackBean := &bean.TrackBean{
+					InstType:  trackBean.InstType,
+					Side:      trackBean.Side,
+					MyOidOpen: trackBean.MyOidOpen,
+					Symbol:    trackBean.Symbol,
+				}
+				if trackBean.InstType == insttype.Margin {
+					bs.marginTrack = newTrackBean
+				} else {
+					bs.futureTrack = newTrackBean
+				}
 			}
 
-			if trackBean.InstType == insttype.Future {
-				if bs.futureTrack == nil {
-					if trackBean.State != orderstate.TRIGGER {
-						errMsg := fmt.Sprintf("Alert! trackBean future 未初始化，直接收到state = %s", trackBean.State)
-						feishu.Send(errMsg)
-						log.Error(errMsg)
-						continue
-					}
-					bs.futureTrack = &bean.TrackBean{InstType: insttype.Future}
-					bs.futureTrack.Side = trackBean.Side
-					bs.futureTrack.MyOidOpen = trackBean.MyOidOpen
-				}
-
-				if bs.futureTrack.MyOidOpen != trackBean.MyOidOpen {
-					errMsg := fmt.Sprintf("Alert! trackBean future myOid不符合，myOid= %d", trackBean.MyOidOpen)
-					feishu.Send(errMsg)
-					log.Error(errMsg)
-					continue
-				}
-				bs.futureTrack.State = trackBean.State
+			currentTrackBean := bs.getTrackBean(trackBean.InstType)
+			if currentTrackBean == nil {
+				feishu.Send("track bean 逻辑错误")
+				continue
 			}
+			if currentTrackBean.MyOidOpen != trackBean.MyOidOpen {
+				errMsg := fmt.Sprintf("Alert! trackBean %s myOid不符合，myOid= %s", trackBean.InstType, trackBean.MyOidOpen)
+				feishu.Send(errMsg)
+				log.Error(errMsg)
+				continue
+			}
+			currentTrackBean.State = trackBean.State
+
 		}
 	}
 }
