@@ -26,10 +26,19 @@ type ExecState struct {
 }
 
 type TrackBean struct {
-	State     string
-	Side      string
-	OrderType string
-	OpenPrc   string //actual prc
-	SlPrc     string
-	TpPrc     string
+	State    string
+	Side     string
+	InstType string
+	OpenPrc  string //actual prc
+	SlPrc    string
+	TpPrc    string
+}
+
+type OrderReq struct {
+	InstType string `json:"instType"`
+	Symbol   string `json:"instId"`
+	Price    string `json:"price"`
+	Size     string `json:"size"`
+	Side     string `json:"side"`
+	PosSide  string `json:"posSide"` //open/close
 }

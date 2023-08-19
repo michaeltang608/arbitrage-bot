@@ -9,8 +9,8 @@ import (
 	"ws-quant/cex"
 	"ws-quant/cex/models"
 	"ws-quant/common/consts"
+	"ws-quant/common/orderstate"
 	"ws-quant/common/symb"
-	"ws-quant/core"
 	"ws-quant/pkg/feishu"
 	"ws-quant/pkg/mapper"
 	"ws-quant/pkg/util"
@@ -66,7 +66,7 @@ func (s *Service) insertCloseOrder(openOrder *models.Orders, myOid string) {
 		Cex:       cex.OKE,
 		Side:      side,
 		PosSide:   consts.Close,
-		State:     string(core.TRIGGER),
+		State:     orderstate.TRIGGER,
 		MyOid:     myOid,
 		OrderType: openOrder.OrderType,
 		Closed:    "N",

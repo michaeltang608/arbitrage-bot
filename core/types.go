@@ -2,11 +2,6 @@ package core
 
 type Side string
 
-const (
-	BUY  Side = "buy"
-	SELL Side = "sell"
-)
-
 type OrderState string
 
 func (s OrderState) State() string {
@@ -14,9 +9,7 @@ func (s OrderState) State() string {
 }
 
 const (
-	TRIGGER  OrderState = "trigger"
-	FILLED   OrderState = "filled"
-	CANCELED OrderState = "canceled"
+// TRIGGER OrderState = "trigger"
 )
 
 type OrderReq struct {

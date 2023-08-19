@@ -25,26 +25,32 @@ func (s *Service) OpenLimit(instType, symbol, price, size, side string) (msg str
 		feishu.Send(errMsg)
 		return errMsg
 	}
-	return s.TradeLimit(instType, symbol, price, size, side, "open")
+	orderReq := bean.OrderReq{
+		InstType: instType,
+		Symbol:   symbol,
+		Price:    price,
+		Size:     size,
+		Side:     side,
+		PosSide:  consts.Open,
+	}
+	return s.TradeLimit(orderReq)
 }
 
-// TradeLimit instId: EOS-USDT, EOS-USDT-SWAP是合约
-func (s *Service) TradeLimit(instType, symbol, price, size, side, posSide string) (msg string) {
-	instId := util.Select(instType == insttype.Margin,
-		fmt.Sprintf("%s-USDT", symbol), fmt.Sprintf("%s-USDT-SWAP", symbol))
+func (s *Service) TradeLimit(r bean.OrderReq) (msg string) {
+	instId := util.Select(r.InstType == insttype.Margin,
+		fmt.Sprintf("%s-USDT", r.Symbol), fmt.Sprintf("%s-USDT-SWAP", r.Symbol))
 
-	closePos := posSide == cex.Close
 	myOid := util.GenerateOrder("OP")
 	arg := map[string]interface{}{
 		"tdMode":     "cross", // 全仓币币， 全仓永续
-		"side":       strings.ToLower(side),
+		"side":       strings.ToLower(r.Side),
 		"instId":     instId,
-		"sz":         size,
-		"px":         price,
+		"sz":         r.Size,
+		"px":         r.Price,
 		"clOrdId":    myOid,
 		"ccy":        "USDT",
 		"ordType":    "limit", //market, limit, ioc
-		"reduceOnly": closePos,
+		"reduceOnly": r.PosSide == consts.Close,
 	}
 
 	req := Req{
@@ -56,36 +62,13 @@ func (s *Service) TradeLimit(instType, symbol, price, size, side, posSide string
 	}
 	reqBytes, _ := json.Marshal(req)
 	log.Info("准备下单信息:%v\n", string(reqBytes))
-	orderType := consts.Margin
-	if strings.HasSuffix(instId, "SWAP") {
-		orderType = consts.Future
-	}
-	order := &models.Orders{
-		InstId:     instId,
-		Cex:        cex.OKE,
-		LimitPrice: price,
-		Size:       size,
-		Side:       side,
-		PosSide:    posSide,
-		State:      orderstate.TRIGGER,
-		OrderId:    "",
-		MyOid:      myOid,
-		OrderType:  orderType,
-		Closed:     "N",
-		Created:    time.Now(),
-		Updated:    time.Now(),
-	}
-	if strings.HasSuffix(instId, "SWAP") {
-		numPerSize := symb.GetFutureLotByInstId(instId)
-		order.NumPerSize = numPerSize
-	}
+	order := buildOrder(r, instId, myOid)
+
+	// report state
 	s.trackBeanChan <- bean.TrackBean{
-		State:     orderstate.TRIGGER,
-		Side:      side,
-		OrderType: "",
-		OpenPrc:   "",
-		SlPrc:     "",
-		TpPrc:     "",
+		State:    orderstate.TRIGGER,
+		Side:     r.Side,
+		InstType: r.InstType,
 	}
 
 	// 异步以便提高主流程效率
@@ -93,11 +76,33 @@ func (s *Service) TradeLimit(instType, symbol, price, size, side, posSide string
 		_ = mapper.Insert(s.db, order)
 	}()
 
-	//s.ReloadOrders()
 	err := s.prvCon.WriteMessage(websocket.TextMessage, reqBytes)
 	if err != nil {
 		panic("发送订阅账户余额数据失败")
 	} else {
 		return "trigger trade成功, 最终结果见推送数据"
 	}
+}
+
+func buildOrder(r bean.OrderReq, instId, myOid string) *models.Orders {
+	order := &models.Orders{
+		InstId:     instId,
+		Cex:        cex.OKE,
+		LimitPrice: r.Price,
+		Size:       r.Size,
+		Side:       r.Side,
+		PosSide:    r.PosSide,
+		State:      orderstate.TRIGGER,
+		OrderId:    "",
+		MyOid:      myOid,
+		OrderType:  r.InstType,
+		Closed:     "N",
+		Created:    time.Now(),
+		Updated:    time.Now(),
+	}
+	if r.InstType == insttype.Future {
+		numPerSize := symb.GetFutureLotByInstId(instId)
+		order.NumPerSize = numPerSize
+	}
+	return order
 }

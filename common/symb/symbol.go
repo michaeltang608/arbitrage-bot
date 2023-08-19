@@ -49,7 +49,7 @@ func init() {
 	}
 }
 
-// GetFutureLot 获取合约的面值
+// GetFutureLotByInstId 获取合约的面值
 func GetFutureLotByInstId(instId string) string {
 	ary := strings.Split(instId, "-")
 	return GetFutureLot(ary[0])

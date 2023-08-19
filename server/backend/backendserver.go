@@ -302,7 +302,7 @@ func (bs *backendServer) PostInit() {
 			} else {
 				bs.marginTrack.State = openMarginOrder.State
 				bs.marginTrack.Side = openMarginOrder.Side
-				bs.marginTrack.OrderType = openMarginOrder.OrderType
+				bs.marginTrack.InstType = openMarginOrder.OrderType
 			}
 		}
 		if openFutureOrder != nil {
@@ -312,7 +312,7 @@ func (bs *backendServer) PostInit() {
 			} else {
 				bs.futureTrack.State = openFutureOrder.State
 				bs.futureTrack.Side = openFutureOrder.Side
-				bs.futureTrack.OrderType = openFutureOrder.OrderType
+				bs.futureTrack.InstType = openFutureOrder.OrderType
 			}
 		}
 
