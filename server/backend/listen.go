@@ -2,6 +2,7 @@ package backend
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -92,10 +93,8 @@ func (bs *backendServer) listenAndExecStTp() {
 					continue
 				}
 				if checkAndModifySl(ticker, bs.marginTrack) {
+					log.Info("触发 stop loss")
 					bs.okeService.CloseOrder(bs.marginTrack.InstType)
-				} else {
-					// 确定移动止盈
-
 				}
 			}
 		}
@@ -113,14 +112,39 @@ func checkAndModifySl(ticker bean.TickerBean, track *bean.TrackBean) bool {
 		} else {
 			openPrcFloat := numutil.Parse(track.OpenPrc)
 			if ticker.PriceBestBid > openPrcFloat {
-				//has profit, step by 0.5 pct todo
-
+				//has profit, step by 0.5 pct
+				pct := (ticker.PriceBestBid/openPrcFloat - 1) * 100
+				pctFloor := math.Floor(pct)
+				if pctFloor >= 1 {
+					if pct-pctFloor > 0.5 {
+						track.SlPrc = openPrcFloat * (1 + 0.01*pctFloor)
+					} else {
+						track.SlPrc = openPrcFloat * (1 + 0.01*(pctFloor-0.5))
+					}
+					log.Info("buy单移动止损-提高,最新 sl=%v", track.SlPrc)
+				}
 			}
 		}
 	} else {
+		//side = sell
 		if ticker.PriceBestAsk >= sl {
-			log.Info("目前bestAsk 已经触发该卖单止损")
+			log.Info("目前bestBid 已经触发该买单止损")
 			return true
+		} else {
+			openPrcFloat := numutil.Parse(track.OpenPrc)
+			if ticker.PriceBestAsk < openPrcFloat {
+				//has profit, step by 0.5 pct
+				pct := (openPrcFloat/ticker.PriceBestAsk - 1) * 100
+				pctFloor := math.Floor(pct)
+				if pctFloor >= 1 {
+					if pct-pctFloor > 0.5 {
+						track.SlPrc = openPrcFloat * (1 - 0.01*pctFloor)
+					} else {
+						track.SlPrc = openPrcFloat * (1 - 0.01*(pctFloor-0.5))
+					}
+					log.Info("sell单移动止损-降低,最新 sl=%v", track.SlPrc)
+				}
+			}
 		}
 	}
 	return false
