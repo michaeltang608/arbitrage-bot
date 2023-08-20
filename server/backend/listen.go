@@ -87,14 +87,29 @@ func (bs *backendServer) listenAndExecStTp() {
 			if bs.marginTrack == nil && bs.futureTrack == nil {
 				continue
 			}
-			if bs.marginTrack != nil && bs.marginTrack.State == orderstate.Filled {
-				if bs.marginTrack.Symbol != ticker.SymbolName {
-					feishu.Send("exec symbol 和 marginTrack中的symbol不一致")
-					continue
+			isFuture := strings.HasSuffix(ticker.InstId, "SWAP")
+			if isFuture {
+				if bs.futureTrack != nil && bs.futureTrack.State == orderstate.Filled {
+					if bs.futureTrack.Symbol != ticker.SymbolName {
+						feishu.Send("exec symbol 和 future Track中的symbol不一致")
+						continue
+					}
+					if checkAndModifySl(ticker, bs.futureTrack) {
+						log.Info("触发 future stop loss")
+						bs.okeService.CloseOrder(bs.futureTrack.InstType)
+					}
 				}
-				if checkAndModifySl(ticker, bs.marginTrack) {
-					log.Info("触发 stop loss")
-					bs.okeService.CloseOrder(bs.marginTrack.InstType)
+			} else {
+				//receive margin price ticker
+				if bs.marginTrack != nil && bs.marginTrack.State == orderstate.Filled {
+					if bs.marginTrack.Symbol != ticker.SymbolName {
+						feishu.Send("exec symbol 和 marginTrack中的symbol不一致")
+						continue
+					}
+					if checkAndModifySl(ticker, bs.marginTrack) {
+						log.Info("触发 margin stop loss")
+						bs.okeService.CloseOrder(bs.marginTrack.InstType)
+					}
 				}
 			}
 		}
@@ -234,12 +249,6 @@ func (bs *backendServer) listenState() {
 				}
 
 			} else if execState.PosSide == consts.Close {
-				//if bs.strategyState != int32(StateCloseSignalled) && bs.strategyState != int32(StateCloseFilledPart) {
-				//	msg := fmt.Sprintf("strategyState是%v, 但收到了closeFilled", bs.strategyState)
-				//	log.Error(msg)
-				//	feishu.Send(msg)
-				//}
-				//r := atomic.AddInt32(&bs.strategyState, 1)
 				if bs.allFinished() {
 					log.Info("策略全部完成")
 					// 调高下次触发的条件，防止立即再次触发
@@ -262,6 +271,6 @@ func (bs *backendServer) listenState() {
 }
 
 func (bs *backendServer) allFinished() bool {
-
+	// todo
 	return false
 }
