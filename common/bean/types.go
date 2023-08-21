@@ -20,9 +20,10 @@ type Ticker struct {
 }
 
 type ExecState struct {
-	PosSide   string //open close
-	Side      string //buy sell
-	OrderType string //margin, future
+	PosSide    string //open close
+	Side       string //buy sell
+	InstType   string //margin, future
+	OrderState string //margin, future
 }
 
 type TrackBean struct {

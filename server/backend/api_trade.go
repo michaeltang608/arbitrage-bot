@@ -23,14 +23,15 @@ func (bs *backendServer) queryLiveOrder(cxt *gin.Context) {
 	gintool.SucMsg(cxt, bs.okeService.QueryLiveOrder(instId))
 	return
 }
-func (bs *backendServer) cancelOrder(cxt *gin.Context) {
 
+func (bs *backendServer) cancelOrder(cxt *gin.Context) {
 	service := bs.okeService
-	msg := service.CancelOrder(cxt.Query("instId"), cxt.Query("orderId"))
+	msg := service.CancelOrder(cxt.Query("instType"))
 	gintool.SucMsg(cxt, msg)
 	return
 }
+
 func (bs *backendServer) closeMarket(cxt *gin.Context) {
-	gintool.SucMsg(cxt, bs.okeService.CloseOrder(cxt.Query("orderType")))
+	gintool.SucMsg(cxt, bs.okeService.CloseOrder(cxt.Query("instType")))
 	return
 }

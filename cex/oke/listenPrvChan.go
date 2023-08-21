@@ -151,7 +151,6 @@ func (s *Service) listenAndNotifyPrivate() {
 
 		// 5.1 收到order 新建数据
 		if fastjson.GetString(msgBytes, "op") == "order" {
-			//maybe place order fail here, log reason and alert
 			log.Info("新订单收到数据: %v", msg)
 			sCode := fastjson.GetString(msgBytes, "data", "0", "sCode")
 			if sCode != "" && sCode != "0" {
@@ -164,13 +163,7 @@ func (s *Service) listenAndNotifyPrivate() {
 					feishu.Send("未找到 myOid = " + myOid)
 					continue
 				}
-				//report
-				s.trackBeanChan <- bean.TrackBean{
-					State:     orderstate.Failed,
-					Side:      orderDb.Side,
-					InstType:  orderDb.OrderType,
-					MyOidOpen: myOid,
-				}
+				mapper.UpdateById(s.db, orderDb.ID, &models.Orders{State: orderstate.Failed})
 				feishu.Send(sMsg)
 			}
 			continue
@@ -232,12 +225,12 @@ func (s *Service) processUpdateOrder(msgBytes []byte) {
 				updateOpen := &models.Orders{Closed: "Y", Updated: time.Now()}
 				_ = mapper.UpdateById(s.db, openOrder.ID, updateOpen)
 				log.Info("close掉开仓订单")
-				// report trackBean 不需要处理了
-				s.trackBeanChan <- bean.TrackBean{
-					State:     orderstate.Closed,
-					InstType:  openOrder.OrderType,
-					MyOidOpen: openOrder.MyOid,
-				}
+				// todo report 给其他
+				//s.trackBeanChan <- bean.TrackBean{
+				//	State:     orderstate.Closed,
+				//	InstType:  openOrder.OrderType,
+				//	MyOidOpen: openOrder.MyOid,
+				//}
 			}
 		}
 	}
@@ -262,21 +255,19 @@ func (s *Service) processUpdateOrder(msgBytes []byte) {
 	}
 	_ = mapper.UpdateById(s.db, orderDb.ID, updateModel)
 
-	//report
-	trackBean := bean.TrackBean{}
-	trackBean.MyOidOpen = myOid
-	//canceled, live, filled
-	trackBean.State = state
 	if state == orderstate.Filled {
 		// 很重要的一个参数
+		trackBean := bean.TrackBean{}
+		trackBean.MyOidOpen = myOid
+		trackBean.State = state
 		trackBean.OpenPrc = prc
+		s.trackBeanChan <- trackBean
 	}
-	s.trackBeanChan <- trackBean
 
 	s.ReloadOrders()
 	// 向上通知不用急，不能太快触发close, 否则拿不到最新的订单状态
-	if state == consts.Filled {
-		s.uploadOrder(orderDb.PosSide, side, orderDb.OrderType)
+	if state == orderstate.Filled || state == orderstate.Cancelled {
+		s.uploadOrder(orderDb.PosSide, side, orderDb.OrderType, state)
 	}
 
 }
@@ -305,10 +296,11 @@ func (s *Service) processBalance(msgBytes []byte) {
 	}
 }
 
-func (s *Service) uploadOrder(posSide, side, orderType string) {
+func (s *Service) uploadOrder(posSide, side, instType, orderState string) {
 	s.execStateChan <- bean.ExecState{
-		PosSide:   posSide,
-		OrderType: orderType,
-		Side:      side,
+		PosSide:    posSide,
+		InstType:   instType,
+		Side:       side,
+		OrderState: orderState,
 	}
 }

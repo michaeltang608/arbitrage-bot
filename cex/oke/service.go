@@ -92,8 +92,8 @@ func (s *Service) GetOrderStat() string {
 	return fmt.Sprintf("%s-%s-%s-%s", one, two, three, four)
 }
 
-func (s *Service) GetCloseOrder(orderType string) *models.Orders {
-	if orderType == consts.Margin {
+func (s *Service) GetCloseOrder(instType string) *models.Orders {
+	if instType == insttype.Margin {
 		return s.closeMarginOrder
 	}
 	return s.closeFutureOrder

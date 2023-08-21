@@ -83,11 +83,16 @@ type CancelReq struct {
 	OrdId  string `json:"ordId"`
 }
 
-func (s *Service) CancelOrder(instId, orderId string) string {
+func (s *Service) CancelOrder(instType string) string {
+
+	order := s.GetOpenOrder(instType)
+	if order == nil || order.State != orderstate.Live {
+		return "open 非live, 但收到cancel"
+	}
 	api := "/api/v5/trade/cancel-order"
 	req := CancelReq{
-		InstId: instId,
-		OrdId:  orderId,
+		InstId: order.InstId,
+		OrdId:  order.OrderId,
 	}
 
 	reqBytes, _ := json.Marshal(&req)

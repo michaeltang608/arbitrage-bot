@@ -74,12 +74,12 @@ func (bs *backendServer) QuantRun() error {
 
 	go func() {
 		defer e.Recover()()
-		bs.listenState()
+		bs.listenOrderState()
 	}()
 
 	go func() {
 		defer e.Recover()()
-		bs.listenTrackBean()
+		bs.listenTrackBeanTriggerAndFilled()
 	}()
 
 	go func() {
@@ -91,7 +91,7 @@ func (bs *backendServer) QuantRun() error {
 	bs.PostInit()
 	// router
 	bs.router()
-	//feishu.Send("program start successfully")
+	feishu.Send("program start!")
 	err := bs.engine.Run(":8083")
 	return err
 }
@@ -112,8 +112,7 @@ func (bs *backendServer) shouldClose(t *MarginFutureTicker) bool {
 }
 
 func (bs *backendServer) realDiff(t *MarginFutureTicker) (signal int, realDiffPct float64) {
-	//从三个价格中判断是否可以 open position
-
+	// 从三个价格中判断是否可以 open position
 	signal = 0
 	realDiffPct = 0
 	if t.BidMargin > t.AskFuture {
