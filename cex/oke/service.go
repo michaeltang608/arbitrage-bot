@@ -66,28 +66,17 @@ func (s *Service) GetOpenOrder(instType string) *models.Orders {
 func (s *Service) GetOrderStat() string {
 	one, two, three, four := "nil", "nil", "nil", "nil"
 	if s.openMarginOrder != nil {
-		one = "live"
-		if s.openMarginOrder.State == consts.Filled {
-			one = "filled"
-		}
+		one = s.openMarginOrder.State
 	}
 	if s.openFutureOrder != nil {
-		two = "live"
-		if s.openFutureOrder.State == consts.Filled {
-			two = "filled"
-		}
+		two = s.openFutureOrder.State
 	}
 	if s.closeMarginOrder != nil {
-		three = "live"
-		if s.closeMarginOrder.State == consts.Filled {
-			three = "filled"
-		}
+		three = s.closeMarginOrder.State
 	}
 	if s.closeFutureOrder != nil {
-		four = "live"
-		if s.closeFutureOrder.State == consts.Filled {
-			four = "filled"
-		}
+		four = s.closeFutureOrder.State
+
 	}
 	return fmt.Sprintf("%s-%s-%s-%s", one, two, three, four)
 }

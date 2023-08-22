@@ -27,7 +27,7 @@ type ExecState struct {
 }
 
 type TrackBean struct {
-	State     string
+	State     string //默认都是 Filled
 	Symbol    string
 	Side      string
 	InstType  string

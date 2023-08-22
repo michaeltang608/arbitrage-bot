@@ -32,7 +32,6 @@ func (bs *backendServer) listenAndExec() {
 
 			//send to strategy monitor
 			if tickerBean.SymbolName == bs.executingSymbol {
-				log.Info("tickerBean send to strategy monitor")
 				bs.trackTickerChan <- tickerBean
 			}
 
@@ -90,7 +89,7 @@ func (bs *backendServer) listenAndExecStTp() {
 			}
 			isFuture := strings.HasSuffix(ticker.InstId, "SWAP")
 			if isFuture {
-				if bs.futureTrack != nil && bs.futureTrack.State == orderstate.Filled {
+				if bs.futureTrack != nil {
 					if bs.futureTrack.Symbol != ticker.SymbolName {
 						feishu.Send("exec symbol 和 future Track中的symbol不一致")
 						continue
@@ -296,6 +295,8 @@ func (bs *backendServer) AfterComplete(desc string) {
 	bs.executingSymbol = ""
 	bs.marginTrack = nil
 	bs.futureTrack = nil
+	bs.config.StrategyOpenThreshold = 2
+	_ = mapper.UpdateById(bs.db, 1, models.Config{StrategyOpenThreshold: 2.0})
 	_ = mapper.UpdateByWhere(bs.db, &models.Orders{Closed: "Y"}, "id > ?", 1)
 	bs.okeService.ReloadOrders()
 	go func() {

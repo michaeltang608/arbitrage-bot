@@ -12,7 +12,7 @@ import (
 func (bs *backendServer) scheduleJobs() {
 	c := cron.New()
 	//每隔1h 清零一次并通知
-	_, _ = c.AddFunc("0/2 * * * *", func() {
+	_, _ = c.AddFunc("0/5 * * * *", func() {
 		//feishu.Send(fmt.Sprintf("前1h的 max是%.2f ", bs.curMax))
 		maxOkMarginFutureDiff := fmt.Sprintf("%.2f", bs.maxDiffMarginFuture)
 		if bs.maxDiffMarginFuture >= 1.0 {
