@@ -79,7 +79,7 @@ func (bs *backendServer) listenAndExec() {
 	}
 }
 
-// combine ticker and track bean to exec st or tp
+// combine ticker and track bean to exec st or tp；
 func (bs *backendServer) listenAndExecStTp() {
 	for {
 		select {
@@ -165,13 +165,22 @@ func checkAndModifySl(ticker bean.TickerBean, track *bean.TrackBean) bool {
 	return false
 }
 
-// 监听 订单状态: trigger, filled
+// 监听 订单状态: open trigger, open filled 和 close trigger 3个状态
 func (bs *backendServer) listenTrackBeanTriggerAndFilled() {
 	for {
 		select {
 		case trackBean := <-bs.trackBeanChan:
 			msg := fmt.Sprintf("收到最新的 trackBean: %+v", trackBean)
 			feishu.Send(msg)
+			if trackBean.PosSide == consts.Close {
+				if trackBean.InstType == insttype.Margin {
+					bs.marginTrack = nil
+				} else if trackBean.InstType == insttype.Future {
+					bs.futureTrack = nil
+				}
+				continue
+			}
+			//接下来处理 open trigger/filled
 			switch trackBean.State {
 			case orderstate.TRIGGER:
 				if bs.getTrackBean(trackBean.InstType) != nil {

@@ -8,6 +8,7 @@ import (
 	"time"
 	"ws-quant/cex"
 	"ws-quant/cex/models"
+	"ws-quant/common/bean"
 	"ws-quant/common/consts"
 	"ws-quant/common/orderstate"
 	"ws-quant/common/symb"
@@ -37,6 +38,12 @@ func (s *Service) CloseOrder(instType string) string {
 	myOid := util.GenerateOrder("CL")
 	// 先持久化
 	s.insertCloseOrder(openOrder, myOid)
+
+	// report to track strategy
+	s.trackBeanChan <- bean.TrackBean{
+		PosSide:  consts.Close,
+		InstType: instType,
+	}
 	instId := openOrder.InstId
 	// do request
 	api := "/api/v5/trade/close-position"
