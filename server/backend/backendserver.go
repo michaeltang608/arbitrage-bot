@@ -48,7 +48,7 @@ type backendServer struct {
 func New() server.Server {
 	bs := &backendServer{}
 
-	bs.initMap()
+	bs.initMapAndChan()
 	return bs
 }
 

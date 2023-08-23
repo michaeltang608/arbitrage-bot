@@ -31,6 +31,7 @@ func (bs *backendServer) listenAndExec() {
 			}
 
 			//send to strategy monitor
+			//log.Info("listenAndExec收到ticker=%+v", tickerBean)
 			if tickerBean.SymbolName == bs.executingSymbol {
 				bs.trackTickerChan <- tickerBean
 			}
@@ -87,7 +88,7 @@ func (bs *backendServer) listenAndExecStTp() {
 			if bs.marginTrack == nil && bs.futureTrack == nil {
 				continue
 			}
-
+			//log.Info("listenAndExecStTp 收到 ticker=%+v", ticker)
 			isFuture := strings.HasSuffix(ticker.InstId, "SWAP")
 			if isFuture {
 				if bs.futureTrack != nil && bs.futureTrack.State == orderstate.Filled {
@@ -134,17 +135,21 @@ func checkAndModifySl(ticker bean.TickerBean, track *bean.TrackBean) bool {
 		} else {
 			openPrcFloat := numutil.Parse(track.OpenPrc)
 			if ticker.PriceBestBid > openPrcFloat {
-				//has profit, step by 0.5 pct
-				log.Info("has profit")
+				//has profit,
 				pct := (ticker.PriceBestBid/openPrcFloat - 1) * 100
 				pctFloor := math.Floor(pct)
-				if pctFloor >= 1 {
+				if pctFloor >= 1 && ticker.PriceBestBid > track.SlPrc {
+					newSlPrc := 0.0
 					if pct-pctFloor > 0.5 {
-						track.SlPrc = openPrcFloat * (1 + 0.01*pctFloor)
+						newSlPrc = openPrcFloat * (1 + 0.01*pctFloor)
 					} else {
-						track.SlPrc = openPrcFloat * (1 + 0.01*(pctFloor-0.5))
+						newSlPrc = openPrcFloat * (1 + 0.01*(pctFloor-0.5))
 					}
-					log.Info("buy单移动止损-提高,最新 sl=%v", track.SlPrc)
+					if newSlPrc > track.SlPrc {
+						track.SlPrc = newSlPrc
+						log.Info("buy单移动止损-提高,最新 sl=%v", track.SlPrc)
+					}
+
 				}
 			}
 		}
@@ -159,13 +164,17 @@ func checkAndModifySl(ticker bean.TickerBean, track *bean.TrackBean) bool {
 				//has profit, step by 0.5 pct
 				pct := (openPrcFloat/ticker.PriceBestAsk - 1) * 100
 				pctFloor := math.Floor(pct)
-				if pctFloor >= 1 {
+				if pctFloor >= 1 && ticker.PriceBestAsk < track.SlPrc {
+					newSlPrc := 0.0
 					if pct-pctFloor > 0.5 {
-						track.SlPrc = openPrcFloat * (1 - 0.01*pctFloor)
+						newSlPrc = openPrcFloat * (1 - 0.01*pctFloor)
 					} else {
-						track.SlPrc = openPrcFloat * (1 - 0.01*(pctFloor-0.5))
+						newSlPrc = openPrcFloat * (1 - 0.01*(pctFloor-0.5))
 					}
-					log.Info("sell单移动止损-降低,最新 sl=%v", track.SlPrc)
+					if newSlPrc < track.SlPrc {
+						track.SlPrc = newSlPrc
+						log.Info("sell单移动止损-降低,最新 sl=%v", track.SlPrc)
+					}
 				}
 			}
 		}

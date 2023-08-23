@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"strings"
 	"time"
 	"ws-quant/common/bean"
 	"ws-quant/common/consts"
@@ -10,7 +11,7 @@ import (
 	"ws-quant/pkg/e"
 )
 
-func (bs *backendServer) initMap() {
+func (bs *backendServer) initMapAndChan() {
 	// 初始化要监控的 ticker
 	// init okex margin-future map，第一个idx存储
 	bs.OkMarginFutureMap = make(map[string]*MarginFutureTicker)
@@ -20,6 +21,8 @@ func (bs *backendServer) initMap() {
 
 	// 初始化 chan
 	bs.tickerChan = make(chan bean.TickerBean, 200)
+	bs.trackTickerChan = make(chan bean.TickerBean, 100)
+
 	bs.trackBeanChan = make(chan bean.TrackBean, 100)
 	bs.execStateChan = make(chan bean.ExecState)
 }
@@ -36,10 +39,16 @@ func (bs *backendServer) PostInit() {
 		closeMarginOrder := bs.okeService.GetCloseOrder(insttype.Margin)
 		closeFutureOrder := bs.okeService.GetCloseOrder(insttype.Future)
 
+		if openMarginOrder != nil {
+			bs.executingSymbol = strings.Split(openMarginOrder.InstId, "-")[0]
+		}
 		if openMarginOrder != nil && closeMarginOrder == nil {
 			if openMarginOrder.State == orderstate.Filled {
 				bs.marginTrack = &bean.TrackBean{
 					State:     orderstate.Filled,
+					PosSide:   openMarginOrder.PosSide,
+					OpenPrc:   openMarginOrder.Price,
+					Symbol:    strings.Split(openMarginOrder.InstId, "-")[0],
 					Side:      openMarginOrder.Side,
 					InstType:  openMarginOrder.OrderType,
 					MyOidOpen: openMarginOrder.MyOid,
@@ -50,6 +59,9 @@ func (bs *backendServer) PostInit() {
 			if openFutureOrder.State == orderstate.Filled {
 				bs.futureTrack = &bean.TrackBean{
 					State:     orderstate.Filled,
+					PosSide:   openFutureOrder.PosSide,
+					OpenPrc:   openFutureOrder.Price,
+					Symbol:    strings.Split(openFutureOrder.InstId, "-")[0],
 					Side:      openFutureOrder.Side,
 					InstType:  openFutureOrder.OrderType,
 					MyOidOpen: openFutureOrder.MyOid,
