@@ -54,21 +54,3 @@ func (bs *backendServer) persistBalance(reason string) {
 	}
 	_ = mapper.Insert(bs.db, accountOke)
 }
-
-// 尝试 ok下单
-//func (bs *backendServer) closePos(cxt *gin.Context) {
-//	var req core.OrderReq
-//	err := cxt.Bind(&req)
-//	if err != nil {
-//		gintool.Error(cxt, err)
-//		return
-//	}
-//	service, ok := bs.cexServiceMap[req.Cex]
-//	if !ok {
-//		gintool.SucMsg(cxt, "cex不存在")
-//		return
-//	}
-//	msg := service.ClosePosMarket()
-//	gintool.SucMsg(cxt, msg)
-//	return
-//}

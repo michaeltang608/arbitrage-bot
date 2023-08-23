@@ -87,12 +87,16 @@ func (bs *backendServer) listenAndExecStTp() {
 			if bs.marginTrack == nil && bs.futureTrack == nil {
 				continue
 			}
+
 			isFuture := strings.HasSuffix(ticker.InstId, "SWAP")
 			if isFuture {
-				if bs.futureTrack != nil {
+				if bs.futureTrack != nil && bs.futureTrack.State == orderstate.Filled {
 					if bs.futureTrack.Symbol != ticker.SymbolName {
 						feishu.Send("exec symbol 和 future Track中的symbol不一致")
 						continue
+					}
+					if bs.futureTrack.SlPrc <= 0 {
+						bs.futureTrack.SlPrc = calInitSlPrc(bs.futureTrack.OpenPrc, bs.futureTrack.Side)
 					}
 					if checkAndModifySl(ticker, bs.futureTrack) {
 						log.Info("触发 future stop loss")
@@ -105,6 +109,9 @@ func (bs *backendServer) listenAndExecStTp() {
 					if bs.marginTrack.Symbol != ticker.SymbolName {
 						feishu.Send("exec symbol 和 marginTrack中的symbol不一致")
 						continue
+					}
+					if bs.marginTrack.SlPrc <= 0 {
+						bs.marginTrack.SlPrc = calInitSlPrc(bs.marginTrack.OpenPrc, bs.marginTrack.Side)
 					}
 					if checkAndModifySl(ticker, bs.marginTrack) {
 						log.Info("触发 margin stop loss")
@@ -128,6 +135,7 @@ func checkAndModifySl(ticker bean.TickerBean, track *bean.TrackBean) bool {
 			openPrcFloat := numutil.Parse(track.OpenPrc)
 			if ticker.PriceBestBid > openPrcFloat {
 				//has profit, step by 0.5 pct
+				log.Info("has profit")
 				pct := (ticker.PriceBestBid/openPrcFloat - 1) * 100
 				pctFloor := math.Floor(pct)
 				if pctFloor >= 1 {
@@ -215,17 +223,23 @@ func (bs *backendServer) listenTrackBeanTriggerAndFilled() {
 				}
 				if trackBean.OpenPrc == "" {
 					log.Error("无openPrc value")
+					feishu.Send("无openPrc value")
+					continue
 				}
 				currentTrackBean.State = orderstate.Filled
 				currentTrackBean.OpenPrc = trackBean.OpenPrc
-				currentTrackBean.SlPrc = prcutil.AdjustPriceFloat(
-					numutil.Parse(trackBean.OpenPrc), currentTrackBean.Side == consts.Sell, 100)
+				currentTrackBean.SlPrc = calInitSlPrc(
+					currentTrackBean.OpenPrc, currentTrackBean.Side)
 
 			default:
 				log.Error("track listen unknown order state=%v", trackBean.State)
 			}
 		}
 	}
+}
+
+func calInitSlPrc(openPrc string, side string) float64 {
+	return prcutil.AdjustPriceFloat(numutil.Parse(openPrc), side == consts.Sell, 100)
 }
 
 // 监听并流转 策略状态, 接受订单的final 状态 => filled, canceled

@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"ws-quant/cex/models"
 	"ws-quant/pkg/gintool"
@@ -14,6 +15,15 @@ func (bs *backendServer) queryExecState(cxt *gin.Context) {
 	data["orderStat"] = bs.okeService.GetOrderStat()
 	data["StrategyOpenThreshold"] = bs.config.StrategyOpenThreshold
 	data["TradeAmt"] = bs.config.TradeAmt
+
+	data["marginTrack"] = ""
+	data["futureTrack"] = ""
+	if bs.marginTrack != nil {
+		data["marginTrack"] = fmt.Sprintf("%+v", bs.marginTrack)
+	}
+	if bs.futureTrack != nil {
+		data["futureTrack"] = fmt.Sprintf("%+v", bs.futureTrack)
+	}
 	gintool.SucData(cxt, data)
 }
 func (bs *backendServer) getConfig(cxt *gin.Context) {
