@@ -102,16 +102,19 @@ func (s *Service) connectPublic() {
 	var err error
 	socketUrl := "wss://ws.okx.com:8443/ws/v5/public"
 	conn, _, err := websocket.DefaultDialer.Dial(socketUrl, nil)
-	if err != nil {
+	if err != nil || conn == nil {
 		// 第二次尝试连接，提高胜率
 		conn, _, err = websocket.DefaultDialer.Dial(socketUrl, nil)
-		if err != nil {
+		if err != nil || conn == nil {
 			log.Panic("oke socket 连续两次连接失败", err.Error())
 		}
 	}
+	if conn == nil {
+		log.Info("奇怪，conn 还是 null")
+	}
 	s.pubCon = conn
 	s.pubConLastConnectTime = time.Now().Second()
-	log.Info("连接pubCon 成功，开始监听消息了")
+	log.Info("连接pubCon 成功，开始监听消息了, pubCon==nil, %v", s.pubCon == nil)
 }
 
 func (s *Service) listenAndNotifyPublic() {

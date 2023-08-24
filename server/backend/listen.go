@@ -182,7 +182,7 @@ func checkAndModifySl(ticker bean.TickerBean, track *bean.TrackBean) bool {
 	return false
 }
 
-// 监听 订单状态: open trigger, open filled 和 close trigger 3个状态
+// 监听 订单状态: open trigger/filled 和 close trigger/filled 4个状态
 func (bs *backendServer) listenTrackBeanTriggerAndFilled() {
 	for {
 		select {
@@ -307,7 +307,7 @@ func (bs *backendServer) listenOrderState() {
 					continue
 				}
 				if otherOpen != nil && otherOpen.State == orderstate.Failed {
-					bs.AfterComplete("closed-failed")
+					bs.AfterComplete(util.Select(otherOpen.OrderType == insttype.Margin, "failed-closed", "closed-failed"))
 					continue
 				}
 				//将close signal -> closePartFilled
