@@ -90,15 +90,7 @@ func (s *Service) subscribeTickers() {
 }
 func (s *Service) connectPublic() {
 	// 可能会重连
-	s.pubConLock.Lock()
-	defer s.pubConLock.Unlock()
-	if s.pubConLastConnectTime >= (time.Now().Second() - 10) {
-		//刚刷新不处理
-		return
-	}
-	if s.pubCon != nil {
-		_ = s.pubCon.Close()
-	}
+	log.Info("开始连接pub con")
 	var err error
 	socketUrl := "wss://ws.okx.com:8443/ws/v5/public"
 	conn, _, err := websocket.DefaultDialer.Dial(socketUrl, nil)
