@@ -47,4 +47,5 @@ type MarginFutureTicker struct {
 	BidMargin float64
 	AskFuture float64
 	BidFuture float64
+	LastTime  int64
 }

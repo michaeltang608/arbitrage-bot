@@ -189,6 +189,10 @@ func (bs *backendServer) calFutureSizeAndTradeAmt(symbol string, symbolPrc, numP
 func (bs *backendServer) getTrackBean(instType string) *bean.TrackBean {
 	if instType == insttype.Margin {
 		return bs.marginTrack
+	} else if instType == insttype.Future {
+		return bs.futureTrack
 	}
-	return bs.futureTrack
+	feishu.Send("invalid instType")
+	return nil
+
 }

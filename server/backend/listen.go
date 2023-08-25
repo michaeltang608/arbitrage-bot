@@ -30,6 +30,11 @@ func (bs *backendServer) listenAndExec() {
 				continue
 			}
 
+			if ticker.LastTime == 0 {
+
+			} else {
+
+			}
 			//send to strategy monitor
 			//log.Info("listenAndExec收到ticker=%+v", tickerBean)
 			if tickerBean.SymbolName == bs.executingSymbol {
@@ -188,7 +193,7 @@ func (bs *backendServer) listenTrackBeanTriggerAndFilled() {
 		select {
 		case trackBean := <-bs.trackBeanChan:
 			msg := fmt.Sprintf("收到最新的 trackBean: %+v", trackBean)
-			feishu.Send(msg)
+			log.Info(msg)
 			if trackBean.PosSide == consts.Close {
 				if trackBean.InstType == insttype.Margin {
 					bs.marginTrack = nil
@@ -197,6 +202,7 @@ func (bs *backendServer) listenTrackBeanTriggerAndFilled() {
 				}
 				continue
 			}
+			feishu.Send(msg)
 			//接下来处理 open trigger/filled
 			switch trackBean.State {
 			case orderstate.TRIGGER:

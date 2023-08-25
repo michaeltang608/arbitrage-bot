@@ -71,7 +71,6 @@ func (s *Service) startPing() {
 监听 余额变动事件更新usdt余额
 */
 func (s *Service) listenAndNotifyPrivate() {
-	errCnt := 0
 	for {
 		if s.prvCon == nil {
 			time.Sleep(time.Second)
@@ -80,17 +79,7 @@ func (s *Service) listenAndNotifyPrivate() {
 		_, msgBytes, err := s.prvCon.ReadMessage()
 		// 0 读取诗句失败
 		if err != nil {
-			log.Error("Error in receive:", err)
-			time.Sleep(time.Second)
-			s.ConnectAndSubscribe()
-			errCnt++
-			if errCnt > 10 {
-				log.Info("读取失败累计超过10次，开始重连")
-				time.Sleep(time.Second * 2)
-				s.connectAndLoginPrivate()
-				time.Sleep(time.Second)
-			}
-			continue
+			log.Panic("Error in receive:" + err.Error())
 		}
 		// 1 接受到 pong 数据
 		msg := string(msgBytes)
@@ -256,6 +245,7 @@ func (s *Service) processUpdateOrder(msgBytes []byte) {
 		trackBean.State = state
 		trackBean.OpenPrc = prc
 		trackBean.PosSide = orderDb.PosSide
+		trackBean.InstType = orderDb.OrderType
 		s.trackBeanChan <- trackBean
 	}
 
