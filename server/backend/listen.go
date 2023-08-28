@@ -335,7 +335,7 @@ func (bs *backendServer) AfterComplete(desc string) {
 	bs.futureTrack = nil
 	bs.config.StrategyOpenThreshold = 2
 	_ = mapper.UpdateById(bs.db, 1, models.Config{StrategyOpenThreshold: 2.0})
-	_ = mapper.UpdateByWhere(bs.db, &models.Orders{Closed: "Y"}, "id > ?", 1)
+	_ = mapper.UpdateByWhere(bs.db, &models.Orders{IsDeleted: "Y"}, "id > ?", 1)
 	bs.okeService.ReloadOrders()
 	go func() {
 		time.Sleep(time.Second * 5)

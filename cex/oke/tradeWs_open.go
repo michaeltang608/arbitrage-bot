@@ -98,7 +98,7 @@ func buildOrder(r bean.OrderReq, instId, myOid string) *models.Orders {
 		OrderId:    "",
 		MyOid:      myOid,
 		OrderType:  r.InstType,
-		Closed:     "N",
+		IsDeleted:  "N",
 		Created:    time.Now(),
 		Updated:    time.Now(),
 	}

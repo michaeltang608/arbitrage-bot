@@ -19,7 +19,7 @@ func (bs *backendServer) t1(cxt *gin.Context) {
 }
 
 func (bs *backendServer) refreshStrategy(cxt *gin.Context) {
-	_ = mapper.UpdateByWhere(bs.db, &models.Orders{Closed: "Y"}, "id > ?", 1)
+	_ = mapper.UpdateByWhere(bs.db, &models.Orders{IsDeleted: "Y"}, "id > ?", 1)
 	bs.strategyState = 0
 	bs.executingSymbol = ""
 

@@ -183,7 +183,7 @@ func (s *Service) processUpdateOrder(msgBytes []byte) {
 	log.Info("订单状态更新: instId=%s,state=%s, %v\n", instId, state, string(msgBytes))
 
 	// 先查询数据库订单
-	orderDb := &models.Orders{MyOid: myOid, Closed: "N"}
+	orderDb := &models.Orders{MyOid: myOid, IsDeleted: "N"}
 	has := mapper.Get(s.db, orderDb)
 	if !has {
 		log.Error("未知订单信息，数据库未查到: myOid=%v\n", myOid)

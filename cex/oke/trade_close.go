@@ -74,7 +74,7 @@ func (s *Service) insertCloseOrder(openOrder *models.Orders, myOid string) {
 		State:     orderstate.TRIGGER,
 		MyOid:     myOid,
 		OrderType: openOrder.OrderType,
-		Closed:    "N",
+		IsDeleted: "N",
 		Created:   time.Now(),
 		Updated:   time.Now(),
 	}

@@ -15,11 +15,15 @@ type Orders struct {
 	State      string    `json:"state" xorm:"notnull default '' Varchar(20) comment('下单、成交、取消')"`
 	OrderId    string    `json:"order_id" xorm:"notnull default '' Varchar(80) comment('订单Id')"`
 	MyOid      string    `json:"my_oid" xorm:"notnull default '' Varchar(80) comment('客户订单Id')"`
-	Closed     string    `json:"closed" xorm:"notnull default 'N' Varchar(10) comment('是否关闭，默认否N')"`
+	IsDeleted  string    `json:"closed" xorm:"notnull default 'N' Varchar(10) comment('是否关闭，默认否N')"`
 	OrderType  string    `json:"order_type" xorm:"notnull default 'limit' Varchar(10) comment('订单类型market/limit')"`
 	Created    time.Time `json:"created" xorm:"notnull default CURRENT_TIMESTAMP timestamp comment('创建时间')"`
 	FilledTime time.Time `json:"filled_time" xorm:"timestamp comment('filled time')"`
 	Updated    time.Time `json:"updated" xorm:"notnull default CURRENT_TIMESTAMP timestamp comment('更新时间')"`
+}
+
+func (m *Orders) TableName() string {
+	return "orders_oke"
 }
 
 type Oppor struct {

@@ -13,7 +13,7 @@ func QueryOpenCloseOrders(db *xorm.Engine) (openOrders, closeOrders []*models.Or
 	orders := make([]*models.Orders, 0)
 	openOrders = make([]*models.Orders, 0)
 	closeOrders = make([]*models.Orders, 0)
-	mapper.Find(db, &orders, &models.Orders{Closed: "N"})
+	mapper.Find(db, &orders, &models.Orders{IsDeleted: "N"})
 	if len(orders) > 4 {
 		feishu.Send("orders > 4, plz check")
 		return
