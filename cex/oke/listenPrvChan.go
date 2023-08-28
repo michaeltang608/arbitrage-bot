@@ -189,40 +189,12 @@ func (s *Service) processUpdateOrder(msgBytes []byte) {
 		log.Error("未知订单信息，数据库未查到: myOid=%v\n", myOid)
 		return
 	}
-
-	orderType := orderDb.OrderType
 	log.Info("找到数据库数据开始更新订单状态, orderId=%v, myOid=%v\n", orderId, myOid)
-	isCanceled := state == consts.Cancelled
-	closed := "N"
-	if isCanceled {
-		closed = "Y"
-	}
-	// 发送 signal 给上级
-	if state == consts.Filled {
-
-		// 如果是平仓且生效，则该次策略完成
-		if orderDb.PosSide == "close" {
-			log.Info("该次策略完成")
-			closed = "Y"
-			// 同时也 close 开仓
-			openOrder := s.GetOpenOrder(orderType)
-			if openOrder == nil {
-				msg := fmt.Sprintf("找不到开仓订单, orderStat=%v", s.GetOrderStat())
-				log.Error(msg)
-				feishu.Send(msg)
-			} else {
-				updateOpen := &models.Orders{Closed: "Y", Updated: time.Now()}
-				_ = mapper.UpdateById(s.db, openOrder.ID, updateOpen)
-				log.Info("close掉开仓订单")
-			}
-		}
-	}
 
 	updateModel := &models.Orders{
 		InstId:  instId,
 		Side:    side,
 		State:   state,
-		Closed:  closed,
 		OrderId: orderId,
 		Updated: time.Now(),
 	}
@@ -238,6 +210,7 @@ func (s *Service) processUpdateOrder(msgBytes []byte) {
 	}
 	_ = mapper.UpdateById(s.db, orderDb.ID, updateModel)
 
+	// 发送 signal 给上级
 	if state == orderstate.Filled {
 		// 很重要的一个参数
 		trackBean := bean.TrackBean{}

@@ -122,7 +122,6 @@ func execOrder(body, method, api string) string {
 	now := time.Now()
 	utcTime := now.Add(-time.Hour * 8)
 	formatTime := utcTime.Format("2006-01-02T15:04:05.000Z")
-	log.Info("formatTime: %v\n", formatTime)
 
 	signStr := fmt.Sprintf("%s%s%s%s", formatTime, "POST", api, body)
 	signature := util.Sha256AndBase64(signStr, apiSecret)
