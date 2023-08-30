@@ -2,21 +2,8 @@ package backend
 
 type StrategyStateEnum int32
 
-const (
-	StateOpenSignalled   StrategyStateEnum = 1
-	StateOpenFilledPart  StrategyStateEnum = 2
-	StateOpenFilledAll   StrategyStateEnum = 3
-	StateCloseSignalled  StrategyStateEnum = 11
-	StateCloseFilledPart StrategyStateEnum = 12
-	StateCloseFilledAll  StrategyStateEnum = 13
-)
-
 var (
-	LogKuc = int64(1)
 	LogOke = int64(2)
-
-	LogDelay        = int64(3)
-	LogMarginFuture = int64(4)
 )
 
 type RatioBean struct {

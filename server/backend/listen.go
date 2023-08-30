@@ -53,6 +53,12 @@ func (bs *backendServer) listenAndExec() {
 				bs.maxDiffMarginFuture = curDiff
 				log.Info("curMaxMarginFuture=%v, symbol=%v\n", bs.maxDiffMarginFuture, tickerBean.SymbolName)
 			}
+			if tickerBean.SymbolName == bs.executingSymbol {
+				marginOpen := bs.okeService.GetOpenOrder(insttype.Margin)
+				if marginOpen != nil && marginOpen.Created.After(time.Now().Add(-time.Minute*5)) {
+					log.Info("executing symbol diff=%v", curDiff)
+				}
+			}
 
 			if openSignal != 0 {
 				if atomic.CompareAndSwapInt32(&bs.triggerState, 0, 1) {
