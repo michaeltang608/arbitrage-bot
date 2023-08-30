@@ -153,6 +153,7 @@ func (s *Service) listenAndNotifyPrivate() {
 					continue
 				}
 				mapper.UpdateById(s.db, orderDb.ID, &models.Orders{State: orderstate.Failed})
+				s.reportOrderState(orderDb.PosSide, orderDb.Side, orderDb.OrderType, orderstate.Failed)
 				feishu.Send(sMsg)
 			}
 			continue
@@ -224,8 +225,8 @@ func (s *Service) processUpdateOrder(msgBytes []byte) {
 
 	s.ReloadOrders()
 	// 向上通知不用急，不能太快触发close, 否则拿不到最新的订单状态
-	if state == orderstate.Filled || state == orderstate.Cancelled {
-		s.uploadOrder(orderDb.PosSide, side, orderDb.OrderType, state)
+	if state == orderstate.Filled || state == orderstate.Cancelled || state == orderstate.Live {
+		s.reportOrderState(orderDb.PosSide, side, orderDb.OrderType, state)
 	}
 
 }
@@ -254,7 +255,7 @@ func (s *Service) processBalance(msgBytes []byte) {
 	}
 }
 
-func (s *Service) uploadOrder(posSide, side, instType, orderState string) {
+func (s *Service) reportOrderState(posSide, side, instType, orderState string) {
 	s.execStateChan <- bean.ExecState{
 		PosSide:    posSide,
 		InstType:   instType,

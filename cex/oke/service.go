@@ -41,12 +41,12 @@ type Service struct {
 
 func New(
 	tickerChan chan bean.TickerBean,
-	execStateChan chan bean.ExecState,
+	orderStateChan chan bean.ExecState,
 	trackBeanChan chan bean.TrackBean,
 	db_ *xorm.Engine) *Service {
 	s := &Service{
 		tickerChan:    tickerChan,
-		execStateChan: execStateChan,
+		execStateChan: orderStateChan,
 		trackBeanChan: trackBeanChan,
 		db:            db_,
 		debtMsgMap:    make(map[string]string),
