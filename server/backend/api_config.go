@@ -11,8 +11,8 @@ import (
 func (bs *backendServer) queryExecState(cxt *gin.Context) {
 	data := make(map[string]interface{}, 0)
 	data["executingSymbol"] = bs.executingSymbol
-	data["strategyState"] = bs.strategyState
-	data["orderStat"] = bs.okeService.GetOrderStat()
+	data["triggerState"] = bs.triggerState
+	data["orderStat"] = bs.execStates
 	data["StrategyOpenThreshold"] = bs.config.StrategyOpenThreshold
 	data["TradeAmt"] = bs.config.TradeAmt
 

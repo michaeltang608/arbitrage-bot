@@ -55,16 +55,16 @@ func (bs *backendServer) listenAndExec() {
 			}
 
 			if openSignal != 0 {
-				if atomic.CompareAndSwapInt32(&bs.strategyState, 0, 1) {
+				if atomic.CompareAndSwapInt32(&bs.triggerState, 0, 1) {
 					bs.execOpenLimit(openSignal, ticker, curDiff)
 				}
 			}
 
 			// close position
-			if bs.strategyState == int32(StateOpenFilledAll) {
+			if bs.execStates[0] == orderstate.Filled && bs.execStates[2] == orderstate.Filled {
 				if strings.ToUpper(ticker.Symbol) == strings.ToUpper(bs.executingSymbol) {
 					if bs.shouldClose(ticker) {
-						if atomic.CompareAndSwapInt32(&bs.strategyState, int32(StateOpenFilledAll), int32(StateCloseSignalled)) {
+						if atomic.CompareAndSwapInt32(&bs.triggerState, 1, 2) {
 							bs.execCloseMarket(ticker)
 						}
 					}
@@ -306,7 +306,7 @@ func (bs *backendServer) AfterComplete(desc string) {
 
 func (bs *backendServer) Refresh() {
 	_ = mapper.UpdateByWhere(bs.db, &models.Orders{IsDeleted: "Y"}, "id > ?", 1)
-	bs.strategyState = 0
+	bs.triggerState = 0
 	bs.executingSymbol = ""
 	bs.marginTrack = nil
 	bs.futureTrack = nil

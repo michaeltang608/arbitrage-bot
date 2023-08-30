@@ -4,7 +4,6 @@ import (
 	"strings"
 	"time"
 	"ws-quant/common/bean"
-	"ws-quant/common/consts"
 	"ws-quant/common/insttype"
 	"ws-quant/common/orderstate"
 	"ws-quant/common/symb"
@@ -88,25 +87,6 @@ func (bs *backendServer) PostInit() {
 				}
 			}
 		}
-
-		// init strategy state
-		if closeMarginOrder != nil || closeFutureOrder != nil {
-			bs.strategyState = int32(StateCloseSignalled)
-			if closeMarginOrder != nil && closeMarginOrder.State == consts.Filled {
-				bs.strategyState = int32(StateCloseFilledPart)
-			} else if closeFutureOrder != nil && closeFutureOrder.State == consts.Filled {
-				bs.strategyState = int32(StateCloseFilledPart)
-			}
-
-		} else if openMarginOrder != nil || openFutureOrder != nil {
-			bs.strategyState = int32(StateOpenSignalled)
-			if openMarginOrder != nil && openMarginOrder.State == consts.Filled {
-				bs.strategyState = int32(StateOpenFilledPart)
-			} else if openFutureOrder != nil && openFutureOrder.State == consts.Filled {
-				bs.strategyState = int32(StateOpenFilledPart)
-			}
-		}
-		log.Info("程序启动，strategyState=%v", bs.strategyState)
 	}()
 
 }

@@ -15,7 +15,7 @@ func (bs *backendServer) execOpenLimit(openSignal int, t *MarginFutureTicker, cu
 	feishu.Send(msg)
 	log.Info(msg)
 	bs.executingSymbol = t.Symbol
-	log.Info("signalOpen, strategyState=%v", bs.strategyState)
+	log.Info("signalOpen, triggerState=%v", bs.triggerState)
 
 	// 先处理 margin, 再处理 future
 	// 计算size
@@ -29,7 +29,7 @@ func (bs *backendServer) execOpenLimit(openSignal int, t *MarginFutureTicker, cu
 
 	tradeAmt, futureSize := bs.calFutureSizeAndTradeAmt(t.Symbol, symbolPrc, numutil.Parse(numPerUnit))
 	if futureSize == 0 {
-		bs.strategyState = 0
+		bs.triggerState = 0
 		return
 	}
 	go func(tradeAmt float64) {
@@ -66,7 +66,7 @@ func (bs *backendServer) execOpenLimit(openSignal int, t *MarginFutureTicker, cu
 
 func (bs *backendServer) execCloseMarket(t *MarginFutureTicker) {
 	feishu.Send(fmt.Sprintf("trigger&exec close market strategy, symb=%sA", t.Symbol))
-	log.Info("signal close, strategyState=%v", bs.strategyState)
+	log.Info("signal close, strategyState=%v", bs.triggerState)
 	go func(askPrc float64) {
 		msg := bs.okeService.CloseOrder(insttype.Margin)
 		log.Info("exec close margin market result: %v\n", msg)

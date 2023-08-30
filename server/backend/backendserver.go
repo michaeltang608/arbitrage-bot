@@ -40,10 +40,9 @@ type backendServer struct {
 	execStates          []string //逐渐淘汰复杂的 strategy state
 	executingSymbol     string   //如eos
 
-	strategyState int32 //0: 默认, 1 触发开仓策略，2 某cex完成open单，3 both cex完成open单；11 触发平仓；12 某cex完成close; 13 both cex 完成cex, 然后转0
-
-	marginTrack *bean.TrackBean
-	futureTrack *bean.TrackBean
+	triggerState int32 //0 初始化, 1 trigger open pos, 2 trigger close,
+	marginTrack  *bean.TrackBean
+	futureTrack  *bean.TrackBean
 }
 
 func New() server.Server {
