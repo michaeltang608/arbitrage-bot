@@ -18,12 +18,6 @@ func (bs *backendServer) openLimit(cxt *gin.Context) {
 	return
 }
 
-func (bs *backendServer) queryLiveOrder(cxt *gin.Context) {
-	instId := cxt.Query("instId")
-	gintool.SucMsg(cxt, bs.okeService.QueryLiveOrder(instId))
-	return
-}
-
 func (bs *backendServer) cancelOrder(cxt *gin.Context) {
 	service := bs.okeService
 	msg := service.CancelOrder(cxt.Query("instType"))

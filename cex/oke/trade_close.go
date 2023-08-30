@@ -118,15 +118,6 @@ func (s *Service) CancelOrder(instType string) string {
 	return resp
 }
 
-func (s *Service) QueryLiveOrder(instId string) string {
-	/*
-		GET /api/v5/trade/order
-		GET /api/v5/trade/order?ordId=590910403358593111&instId=BTC-US
-
-	*/
-	api := fmt.Sprintf("/api/v5/trade/order?instId=%v", instId)
-	return execOrder("", http.MethodGet, api)
-}
 func execOrder(body, method, api string) string {
 	log.Info("开始execOrder: body=%s, method=%s, api=%s", body, method, api)
 	now := time.Now()

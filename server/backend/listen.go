@@ -305,7 +305,7 @@ func (bs *backendServer) AfterComplete(desc string) {
 }
 
 func (bs *backendServer) Refresh() {
-	_ = mapper.UpdateByWhere(bs.db, &models.Orders{IsDeleted: "Y"}, "id > ?", 1)
+	_ = mapper.UpdateByWhere(bs.db, &models.Orders{IsDeleted: "Y"}, "id > ?", 0)
 	bs.triggerState = 0
 	bs.executingSymbol = ""
 	bs.marginTrack = nil
