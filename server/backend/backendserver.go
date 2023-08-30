@@ -26,8 +26,8 @@ type backendServer struct {
 	tickerChan      chan bean.TickerBean //负责监听接收数据
 	trackTickerChan chan bean.TickerBean //负责 sl tp 跟进
 
-	execStateChan chan bean.ExecState
-	trackBeanChan chan bean.TrackBean
+	orderStateChan chan bean.ExecState
+	trackBeanChan  chan bean.TrackBean
 
 	OkMarginFutureMap map[string]*MarginFutureTicker
 	okeService        *oke.Service
@@ -37,7 +37,8 @@ type backendServer struct {
 	maxDiffMarginFuture float64
 	db                  *xorm.Engine
 	engine              *gin.Engine
-	executingSymbol     string //如eos
+	execStates          []string //逐渐淘汰复杂的 strategy state
+	executingSymbol     string   //如eos
 
 	strategyState int32 //0: 默认, 1 触发开仓策略，2 某cex完成open单，3 both cex完成open单；11 触发平仓；12 某cex完成close; 13 both cex 完成cex, 然后转0
 
@@ -55,13 +56,13 @@ func New() server.Server {
 func (bs *backendServer) QuantRun() error {
 	// 连db
 	bs.dbClient()
-	bs.okeService = oke.New(bs.tickerChan, bs.execStateChan, bs.trackBeanChan, bs.db)
+	bs.okeService = oke.New(bs.tickerChan, bs.orderStateChan, bs.trackBeanChan, bs.db)
 	go func() {
 		defer e.Recover()()
 		bs.okeService.Run()
 	}()
 	// listen ticker
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 20; i++ {
 		go func() {
 			defer e.Recover()()
 			bs.listenAndExec()

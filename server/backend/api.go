@@ -19,11 +19,7 @@ func (bs *backendServer) t1(cxt *gin.Context) {
 }
 
 func (bs *backendServer) refreshStrategy(cxt *gin.Context) {
-	_ = mapper.UpdateByWhere(bs.db, &models.Orders{IsDeleted: "Y"}, "id > ?", 1)
-	bs.strategyState = 0
-	bs.executingSymbol = ""
-
-	bs.okeService.ReloadOrders()
+	bs.Refresh()
 	cxt.JSON(http.StatusOK, gin.H{
 		"suc": true,
 		"msg": "strategy reloaded",

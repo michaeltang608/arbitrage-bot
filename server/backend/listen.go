@@ -29,12 +29,6 @@ func (bs *backendServer) listenAndExec() {
 				log.Error("未能找到%v中map数据", tickerBean.SymbolName)
 				continue
 			}
-
-			if ticker.LastTime == 0 {
-
-			} else {
-
-			}
 			//send to strategy monitor
 			//log.Info("listenAndExec收到ticker=%+v", tickerBean)
 			if tickerBean.SymbolName == bs.executingSymbol {
@@ -257,15 +251,51 @@ func calInitSlPrc(openPrc string, side string) float64 {
 	return prcutil.AdjustPriceFloat(numutil.Parse(openPrc), side == consts.Sell, 100)
 }
 
-// 监听并流转 策略状态, 接受订单的final 状态 => filled, canceled
-func (bs *backendServer) listenOrderState() {
+// 监听并流转 策略状态, 接受订单的 状态 => open/close live/filled, open canceled/failed, 不包含 trigger
+func (bs *backendServer) listenOrderStateV2() {
 	for {
 		select {
-		case execState := <-bs.execStateChan:
+		case execState := <-bs.orderStateChan:
 			msg := fmt.Sprintf("收到最新的state: %+v", execState)
 			feishu.Send(msg)
 			log.Info(msg)
+			if execState.InstType == insttype.Margin {
+				if execState.PosSide == consts.Open {
+					bs.execStates[0] = execState.OrderState
+				} else if execState.PosSide == consts.Close {
+					bs.execStates[1] = execState.OrderState
+				} else {
+					feishu.Send("unknown posSide=" + execState.PosSide)
+				}
+			} else if execState.InstType == insttype.Future {
+				if execState.PosSide == consts.Open {
+					bs.execStates[2] = execState.OrderState
+				} else if execState.PosSide == consts.Close {
+					bs.execStates[3] = execState.OrderState
+				} else {
+					feishu.Send("unknown posSide=" + execState.PosSide)
+				}
+			} else {
+				feishu.Send("unknown instType=" + execState.InstType)
+			}
+		}
+	}
+}
+func (bs *backendServer) listenOrderState() {
+	for {
+		select {
+		case execState := <-bs.orderStateChan:
+			msg := fmt.Sprintf("收到最新的state: %+v", execState)
+			feishu.Send(msg)
+			log.Info(msg)
+			/*
+				此时有几种情况，
+				1 另一个 open 是 cancelled 后执行 all finish, (也就是说cancel只有可能在另一个执行close成功后执行，而且很可能是 SL close)
+				2 另一个 open 是 failed, 则 执行 all finish 逻辑
+				3 另一个 open 是 filled 等待另一个 close, 之后执行 all finish 逻辑
+			*/
 			if execState.PosSide == consts.Open {
+
 				// 开仓情况下 只会收到 filled 和 canceled 两种
 				if execState.OrderState == orderstate.Filled {
 					if bs.strategyState != int32(StateOpenSignalled) && bs.strategyState != int32(StateOpenFilledPart) {
@@ -299,19 +329,13 @@ func (bs *backendServer) listenOrderState() {
 					// track 使命结束
 					bs.futureTrack = nil
 				}
-				/*
-					此时有几种情况，
-					1 另一个 open 是 live, 则 执行 cancel
-						- 等待 cancelled 后执行 all finish, (也就是说cancel只有可能在另一个执行close成功后执行，而且很可能是 SL close)
-					2 另一个 open 是 failed, 则 执行 all finish 逻辑
-					3 另一个 open 是 filled 等待另一个 close, 之后执行 all finish 逻辑
-				*/
+
 				otherInstType := util.Select(execState.InstType == insttype.Margin, insttype.Future, insttype.Margin)
 				otherOpen := bs.okeService.GetOpenOrder(otherInstType)
-				if otherOpen != nil && otherOpen.State == orderstate.Live {
-					bs.okeService.CancelOrder(otherInstType)
-					continue
-				}
+				//if otherOpen != nil && otherOpen.State == orderstate.Live {
+				//	bs.okeService.CancelOrder(otherInstType)
+				//	continue
+				//}
 				if otherOpen != nil && otherOpen.State == orderstate.Failed {
 					bs.AfterComplete(util.Select(otherOpen.OrderType == insttype.Margin, "failed-closed", "closed-failed"))
 					continue
@@ -325,18 +349,23 @@ func (bs *backendServer) listenOrderState() {
 	}
 }
 
-func (bs *backendServer) AfterComplete(desc string) {
-	msg := "策略全部完成: " + desc
-	log.Info(msg)
-	feishu.Send(msg)
+func (bs *backendServer) Refresh() {
+	_ = mapper.UpdateByWhere(bs.db, &models.Orders{IsDeleted: "Y"}, "id > ?", 1)
 	bs.strategyState = 0
 	bs.executingSymbol = ""
 	bs.marginTrack = nil
 	bs.futureTrack = nil
+	bs.execStates = []string{"", "", "", ""}
+	bs.okeService.ReloadOrders()
+}
+func (bs *backendServer) AfterComplete(desc string) {
+	msg := "策略全部完成: " + desc
+	bs.Refresh()
+	log.Info(msg)
+	feishu.Send(msg)
 	bs.config.StrategyOpenThreshold = 2
 	_ = mapper.UpdateById(bs.db, 1, models.Config{StrategyOpenThreshold: 2.0})
 	_ = mapper.UpdateByWhere(bs.db, &models.Orders{IsDeleted: "Y"}, "id > ?", 1)
-	bs.okeService.ReloadOrders()
 	go func() {
 		time.Sleep(time.Second * 5)
 		bs.persistBalance("strategy-finish")

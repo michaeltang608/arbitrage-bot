@@ -10,6 +10,7 @@ import (
 	"ws-quant/cex/models"
 	"ws-quant/common/bean"
 	"ws-quant/common/consts"
+	"ws-quant/common/insttype"
 	"ws-quant/common/orderstate"
 	"ws-quant/common/symb"
 	"ws-quant/pkg/feishu"
@@ -28,6 +29,15 @@ type CloseReq struct {
 
 func (s *Service) CloseOrder(instType string) string {
 	openOrder := s.GetOpenOrder(instType)
+
+	go func(instType string) {
+		//check and close the other live
+		otherInstType := util.Select(instType == insttype.Margin, insttype.Future, insttype.Margin)
+		otherOpen := s.GetOpenOrder(otherInstType)
+		if otherOpen != nil && otherOpen.State == orderstate.Live {
+			s.CancelOrder(otherInstType)
+		}
+	}(instType)
 
 	if openOrder == nil || openOrder.State != orderstate.Filled {
 		msg := fmt.Sprintf("收到close margin, but no open %s found", instType)
