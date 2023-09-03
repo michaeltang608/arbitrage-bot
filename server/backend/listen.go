@@ -51,11 +51,13 @@ func (bs *backendServer) listenAndExec() {
 			openSignal, curDiff := bs.realDiff(ticker)
 			if bs.maxDiffMarginFuture < curDiff {
 				bs.maxDiffMarginFuture = curDiff
-				log.Info("curMaxMarginFuture=%v, symbol=%v\n", bs.maxDiffMarginFuture, tickerBean.SymbolName)
+				if curDiff >= 0.1 {
+					log.Info("curMaxMarginFuture=%v, symbol=%v\n", bs.maxDiffMarginFuture, tickerBean.SymbolName)
+				}
 			}
 			if tickerBean.SymbolName == bs.executingSymbol {
 				marginOpen := bs.okeService.GetOpenOrder(insttype.Margin)
-				if marginOpen != nil && marginOpen.Created.After(time.Now().Add(-time.Minute*5)) {
+				if marginOpen != nil && marginOpen.Created.After(time.Now().Add(-time.Second*20)) {
 					log.Info("executing symbol diff=%v", curDiff)
 				}
 			}
@@ -106,6 +108,7 @@ func (bs *backendServer) listenAndExecStTp() {
 					if checkAndModifySl(ticker, bs.futureTrack) {
 						log.Info("触发 future stop loss")
 						bs.okeService.CloseOrder(bs.futureTrack.InstType)
+						bs.futureTrack = nil
 					}
 				}
 			} else {
@@ -121,6 +124,7 @@ func (bs *backendServer) listenAndExecStTp() {
 					if checkAndModifySl(ticker, bs.marginTrack) {
 						log.Info("触发 margin stop loss")
 						bs.okeService.CloseOrder(bs.marginTrack.InstType)
+						bs.marginTrack = nil
 					}
 				}
 			}
@@ -290,7 +294,7 @@ func (bs *backendServer) listenOrderState() {
 			marginCompleted := openMarginState == orderstate.Failed || openMarginState == orderstate.Cancelled || closeMarginState == orderstate.Filled
 			futureCompleted := openFutureState == orderstate.Failed || openFutureState == orderstate.Cancelled || closeFutureState == orderstate.Filled
 			if marginCompleted && futureCompleted {
-				bs.AfterComplete(strings.Join(bs.execStates, "-"))
+				bs.AfterComplete(strings.Join(bs.execStates, " = "))
 			}
 		}
 	}

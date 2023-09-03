@@ -29,6 +29,7 @@ func (bs *backendServer) execOpenLimit(openSignal int, t *MarginFutureTicker, cu
 
 	tradeAmt, futureSize := bs.calFutureSizeAndTradeAmt(t.Symbol, symbolPrc, numutil.Parse(numPerUnit))
 	if futureSize == 0 {
+		feishu.Send("futureSize=0, require manual attention!")
 		bs.triggerState = 0
 		return
 	}

@@ -3,6 +3,7 @@ package backend
 import (
 	"strings"
 	"time"
+	"ws-quant/cex/models"
 	"ws-quant/common/bean"
 	"ws-quant/common/insttype"
 	"ws-quant/common/orderstate"
@@ -31,8 +32,6 @@ func (bs *backendServer) initMapAndChan() {
 func (bs *backendServer) PostInit() {
 	go func() {
 		defer e.Recover()()
-		bs.marginTrack = nil
-		bs.futureTrack = nil
 		//保证 service完成初始化
 		time.Sleep(time.Second * 5)
 		openMarginOrder := bs.okeService.GetOpenOrder(insttype.Margin)
@@ -44,6 +43,11 @@ func (bs *backendServer) PostInit() {
 		// init executing symbol
 		if openMarginOrder != nil {
 			bs.executingSymbol = strings.Split(openMarginOrder.InstId, "-")[0]
+		}
+
+		// init trigger state, 0/1/2/0
+		if bs.executingSymbol != "" {
+			bs.triggerState = 1
 		}
 
 		// init execStates，记录 failed, live, canceled, filled
@@ -62,31 +66,28 @@ func (bs *backendServer) PostInit() {
 
 		// init track bean
 		if openMarginOrder != nil && closeMarginOrder == nil {
-			if openMarginOrder.State == orderstate.Filled || openMarginOrder.State == orderstate.Live {
-				bs.marginTrack = &bean.TrackBean{
-					State:     openMarginOrder.State,
-					PosSide:   openMarginOrder.PosSide,
-					OpenPrc:   openMarginOrder.Price,
-					Symbol:    strings.Split(openMarginOrder.InstId, "-")[0],
-					Side:      openMarginOrder.Side,
-					InstType:  openMarginOrder.OrderType,
-					MyOidOpen: openMarginOrder.MyOid,
-				}
-			}
+			bs.marginTrack = buildTrackBean(openMarginOrder)
+
 		}
 		if openFutureOrder != nil && closeFutureOrder == nil {
-			if openFutureOrder.State == orderstate.Filled || openFutureOrder.State == orderstate.Live {
-				bs.futureTrack = &bean.TrackBean{
-					State:     openMarginOrder.State,
-					PosSide:   openFutureOrder.PosSide,
-					OpenPrc:   openFutureOrder.Price,
-					Symbol:    strings.Split(openFutureOrder.InstId, "-")[0],
-					Side:      openFutureOrder.Side,
-					InstType:  openFutureOrder.OrderType,
-					MyOidOpen: openFutureOrder.MyOid,
-				}
-			}
+			bs.marginTrack = buildTrackBean(openFutureOrder)
 		}
 	}()
 
+}
+
+func buildTrackBean(openOrder *models.Orders) *bean.TrackBean {
+	if openOrder.State == orderstate.Filled || openOrder.State == orderstate.Live {
+		return &bean.TrackBean{
+			State:     openOrder.State,
+			PosSide:   openOrder.PosSide,
+			OpenPrc:   openOrder.Price,
+			Symbol:    strings.Split(openOrder.InstId, "-")[0],
+			Side:      openOrder.Side,
+			InstType:  openOrder.OrderType,
+			MyOidOpen: openOrder.MyOid,
+		}
+	} else {
+		return nil
+	}
 }

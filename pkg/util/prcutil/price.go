@@ -2,6 +2,7 @@ package prcutil
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 )
@@ -19,6 +20,7 @@ func AdjustPriceFloat(price float64, bigger bool, pips float64) float64 {
 }
 
 func AdjustPrice(price float64, side string, curDiff float64) string {
+	log.Printf("Adjust price: %v, side=%v, curDiff=%v\n", price, side, curDiff)
 	priceStr := fmt.Sprintf("%v", price)
 	// 多加一位精确度
 	decimalLen := calDecimalLen(priceStr) + 1
