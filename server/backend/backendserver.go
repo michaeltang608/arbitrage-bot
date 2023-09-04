@@ -75,7 +75,7 @@ func (bs *backendServer) QuantRun() error {
 
 	go func() {
 		defer e.Recover()()
-		bs.listenTrackBeanTriggerAndFilled()
+		bs.listenTrackBeanOpenFilledAndClose()
 	}()
 
 	go func() {

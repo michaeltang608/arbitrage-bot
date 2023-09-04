@@ -45,14 +45,14 @@ func (bs *backendServer) scheduleJobs() {
 func (bs *backendServer) checkAndCancelExpiredLiveOrder() {
 	openMargin := bs.okeService.GetOpenOrder(insttype.Margin)
 	openFuture := bs.okeService.GetOpenOrder(insttype.Future)
-	if openMargin != nil && openMargin.OrderType == orderstate.Live {
+	if openMargin != nil && openMargin.State == orderstate.Live {
 		if openMargin.Created.Before(time.Now().Add(-time.Minute * 20)) {
 			msg := "cancel expired live " + insttype.Margin
 			feishu.Send(msg)
 			bs.okeService.CancelOrder(insttype.Margin)
 		}
 	}
-	if openFuture != nil && openFuture.OrderType == orderstate.Live {
+	if openFuture != nil && openFuture.State == orderstate.Live {
 		if openFuture.Created.Before(time.Now().Add(-time.Minute * 20)) {
 			msg := "cancel expired live " + insttype.Future
 			feishu.Send(msg)

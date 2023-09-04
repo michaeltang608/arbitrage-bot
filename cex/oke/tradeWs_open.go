@@ -64,15 +64,6 @@ func (s *Service) TradeLimit(r bean.OrderReq) (msg string) {
 	log.Info("准备下单信息:%v\n", string(reqBytes))
 	order := buildOrder(r, instId, myOid)
 
-	// report state
-	s.trackBeanChan <- bean.TrackBean{
-		State:     orderstate.TRIGGER,
-		Side:      r.Side,
-		Symbol:    strings.ToUpper(r.Symbol),
-		InstType:  r.InstType,
-		MyOidOpen: myOid,
-	}
-
 	// 异步以便提高主流程效率
 	go func() {
 		_ = mapper.Insert(s.db, order)

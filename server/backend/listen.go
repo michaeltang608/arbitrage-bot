@@ -190,8 +190,8 @@ func checkAndModifySl(ticker bean.TickerBean, track *bean.TrackBean) bool {
 	return false
 }
 
-// 监听 订单状态: open trigger/filled 和 close trigger/filled 4个状态
-func (bs *backendServer) listenTrackBeanTriggerAndFilled() {
+// 监听 订单状态: open filled 和 close trigger 2个状态
+func (bs *backendServer) listenTrackBeanOpenFilledAndClose() {
 	for {
 		select {
 		case trackBean := <-bs.trackBeanChan:
@@ -207,18 +207,21 @@ func (bs *backendServer) listenTrackBeanTriggerAndFilled() {
 			}
 			feishu.Send(msg)
 			//接下来处理 open trigger/filled
-			switch trackBean.State {
-			case orderstate.TRIGGER:
+			if trackBean.State == orderstate.TRIGGER {
+				if trackBean.OpenPrc == "" {
+					log.Error("无openPrc value")
+					feishu.Send("无openPrc value")
+					continue
+				}
 				if bs.getTrackBean(trackBean.InstType) != nil {
-					errMsg := fmt.Sprintf("Alert! 接受到trigger，但是trackBean不为null, track myOid = %s",
-						trackBean.MyOidOpen)
-					feishu.Send(errMsg)
-					log.Error(errMsg)
+					feishu.Send("track bean 逻辑错误")
 					continue
 				}
 				newTrackBean := &bean.TrackBean{
 					InstType:  trackBean.InstType,
 					Side:      trackBean.Side,
+					State:     orderstate.Filled,
+					OpenPrc:   trackBean.OpenPrc,
 					MyOidOpen: trackBean.MyOidOpen,
 					Symbol:    trackBean.Symbol,
 				}
@@ -227,30 +230,9 @@ func (bs *backendServer) listenTrackBeanTriggerAndFilled() {
 				} else {
 					bs.futureTrack = newTrackBean
 				}
-			case orderstate.Filled:
-				currentTrackBean := bs.getTrackBean(trackBean.InstType)
-				if currentTrackBean == nil {
-					feishu.Send("track bean 逻辑错误")
-					continue
-				}
-				if currentTrackBean.MyOidOpen != trackBean.MyOidOpen {
-					errMsg := fmt.Sprintf("Alert! trackBean %s myOid不符合，myOid= %s", trackBean.InstType, trackBean.MyOidOpen)
-					feishu.Send(errMsg)
-					log.Error(errMsg)
-					continue
-				}
-				if trackBean.OpenPrc == "" {
-					log.Error("无openPrc value")
-					feishu.Send("无openPrc value")
-					continue
-				}
-				currentTrackBean.State = orderstate.Filled
-				currentTrackBean.OpenPrc = trackBean.OpenPrc
-				currentTrackBean.SlPrc = calInitSlPrc(
-					currentTrackBean.OpenPrc, currentTrackBean.Side)
+				newTrackBean.SlPrc = calInitSlPrc(
+					newTrackBean.OpenPrc, newTrackBean.Side)
 
-			default:
-				log.Error("track listen unknown order state=%v", trackBean.State)
 			}
 		}
 	}

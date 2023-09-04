@@ -77,7 +77,7 @@ func (bs *backendServer) PostInit() {
 }
 
 func buildTrackBean(openOrder *models.Orders) *bean.TrackBean {
-	if openOrder.State == orderstate.Filled || openOrder.State == orderstate.Live {
+	if openOrder.State == orderstate.Filled {
 		return &bean.TrackBean{
 			State:     openOrder.State,
 			PosSide:   openOrder.PosSide,
