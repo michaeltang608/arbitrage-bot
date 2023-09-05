@@ -10,7 +10,7 @@ import (
 	"ws-quant/pkg/util/prcutil"
 )
 
-func (bs *backendServer) execOpenLimit(openSignal int, t *MarginFutureTicker, curDiff float64) {
+func (bs *backendServer) execOpenLimit(openSignal int, t *OkBitTicker, curDiff float64) {
 	msg := fmt.Sprintf("trigger&exec open limit strategy,curDiff=%v, ticker= %+v", curDiff, t)
 	feishu.Send(msg)
 	log.Info(msg)
@@ -19,7 +19,7 @@ func (bs *backendServer) execOpenLimit(openSignal int, t *MarginFutureTicker, cu
 
 	// 先处理 margin, 再处理 future
 	// 计算size
-	symbolPrc := t.AskFuture
+	symbolPrc := t.AskBit
 	numPerUnit := symb.GetFutureLot(t.Symbol)
 	if numPerUnit == "" {
 		log.Error("未找到该future 的unitNum, %v", t.Symbol)
@@ -36,12 +36,12 @@ func (bs *backendServer) execOpenLimit(openSignal int, t *MarginFutureTicker, cu
 	go func(tradeAmt float64) {
 		// margin
 		priceF := 0.0
-		size := util.NumTrunc(tradeAmt / t.AskFuture)
+		size := util.NumTrunc(tradeAmt / t.AskBit)
 		side := "buy"
-		priceF = t.AskMargin
+		priceF = t.AskOk
 		if openSignal > 0 {
 			side = "sell"
-			priceF = t.BidMargin
+			priceF = t.BidOk
 		}
 		price := prcutil.AdjustPrice(priceF, side, curDiff)
 		log.Info("ok margin prepare open pos, side=%v, symbol=%v, price=%v, size=%v\n", side, t.Symbol, price, size)
@@ -51,10 +51,10 @@ func (bs *backendServer) execOpenLimit(openSignal int, t *MarginFutureTicker, cu
 	go func(size int) {
 		// future
 		side := "sell"
-		priceF := t.BidFuture
+		priceF := t.BidBit
 		if openSignal > 0 {
 			side = "buy"
-			priceF = t.AskFuture
+			priceF = t.AskBit
 		}
 		price := prcutil.AdjustPrice(priceF, side, curDiff)
 		log.Info("prepare to open pos, side=%v, symbol=%v, price=%v, size=%v\n", side, t.Symbol, price, size)
@@ -65,13 +65,13 @@ func (bs *backendServer) execOpenLimit(openSignal int, t *MarginFutureTicker, cu
 	feishu.Send("strategy open triggered")
 }
 
-func (bs *backendServer) execCloseMarket(t *MarginFutureTicker) {
+func (bs *backendServer) execCloseMarket(t *OkBitTicker) {
 	feishu.Send(fmt.Sprintf("trigger&exec close market strategy, symb=%sA", t.Symbol))
 	log.Info("signal close, strategyState=%v", bs.triggerState)
 	go func(askPrc float64) {
 		msg := bs.okeService.CloseOrder(insttype.Margin)
 		log.Info("exec close margin market result: %v\n", msg)
-	}(t.AskMargin)
+	}(t.AskOk)
 
 	go func() {
 		msg := bs.okeService.CloseOrder(insttype.Future)

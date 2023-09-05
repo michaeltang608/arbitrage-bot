@@ -6,7 +6,7 @@ func AdjustClosePosSize(size float64, side string, cexName string) string {
 	sizeAdjusted := 0.0
 	if side == "sell" {
 		//如果是 oke的话，买的时候被扣除了 0.1%, 所以没那么多卖,而且oke可以一键平仓
-		if cexName == "oke" {
+		if cexName == "service" {
 			sizeAdjusted = size * (1 - 0.001)
 			//保留三位有效数字
 			return NumTrunc(sizeAdjusted)

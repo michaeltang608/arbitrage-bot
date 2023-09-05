@@ -3,7 +3,7 @@ package cex
 const (
 	//BINAN = "binan"
 	//HUO   = "huo"
-	OKE   = "oke"
+	OKE   = "service"
 	Buy   = "buy"
 	Sell  = "sell"
 	Open  = "open"

@@ -1,4 +1,4 @@
-package oke
+package service
 
 import (
 	"encoding/json"

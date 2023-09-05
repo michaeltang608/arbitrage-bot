@@ -12,11 +12,12 @@ type TickerBean struct {
 
 // Ticker 此 ticker结构体主要是追踪长期未更新的 instId
 type Ticker struct {
-	PriceBestAsk float64
-	Price        float64
-	PriceBestBid float64
-	CurTime      int64 // 这一次同步的时间
-	LastTime     int64 // 上一次同步的时间，用于计算两次同步的时间差，因而告警长时间没有同步的数据，如 30s
+	Symbol   string
+	BestAsk  float64
+	Price    float64
+	BestBid  float64
+	CurTime  int64 // 这一次同步的时间
+	LastTime int64 // 上一次同步的时间，用于计算两次同步的时间差，因而告警长时间没有同步的数据，如 30s
 }
 
 type ExecState struct {

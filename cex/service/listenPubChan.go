@@ -1,4 +1,4 @@
-package oke
+package service
 
 import (
 	"encoding/json"
@@ -98,7 +98,7 @@ func (s *Service) connectPublic() {
 		// 第二次尝试连接，提高胜率
 		conn, _, err = websocket.DefaultDialer.Dial(socketUrl, nil)
 		if err != nil || conn == nil {
-			log.Panic("oke socket 连续两次连接失败", err.Error())
+			log.Panic("service socket 连续两次连接失败", err.Error())
 		}
 	}
 	if conn == nil {
@@ -123,7 +123,7 @@ func (s *Service) listenAndNotifyPublic() {
 			errCnt++
 			if errCnt > 10 {
 				log.Info("读取失败累计超过10次，开始重启")
-				log.Panic("oke read pub err")
+				log.Panic("service read pub err")
 			}
 			continue
 		}

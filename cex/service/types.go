@@ -1,4 +1,4 @@
-package oke
+package service
 
 type Req struct {
 	Id   string                   `json:"id"`

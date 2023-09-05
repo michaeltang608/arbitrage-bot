@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"ws-quant/cex/models"
-	"ws-quant/cex/oke"
+	"ws-quant/cex/service"
 	"ws-quant/common/bean"
 	"ws-quant/common/insttype"
 	"ws-quant/pkg/db"
@@ -29,9 +29,9 @@ type backendServer struct {
 	orderStateChan chan bean.ExecState
 	trackBeanChan  chan bean.TrackBean
 
-	OkMarginFutureMap map[string]*MarginFutureTicker
-	okeService        *oke.Service
-	stopChan          chan struct{}
+	OkBitMap   map[string]*OkBitTicker
+	okeService *service.Service
+	stopChan   chan struct{}
 
 	//curMax             float64
 	maxDiffMarginFuture float64
@@ -55,7 +55,7 @@ func New() server.Server {
 func (bs *backendServer) QuantRun() error {
 	// 连db
 	bs.dbClient()
-	bs.okeService = oke.New(bs.tickerChan, bs.orderStateChan, bs.trackBeanChan, bs.db)
+	bs.okeService = service.New(bs.tickerChan, bs.orderStateChan, bs.trackBeanChan, bs.db)
 	go func() {
 		defer e.Recover()()
 		bs.okeService.Run()
@@ -67,23 +67,23 @@ func (bs *backendServer) QuantRun() error {
 			bs.listenAndExec()
 		}()
 	}
-
-	go func() {
-		defer e.Recover()()
-		bs.listenOrderState()
-	}()
-
-	go func() {
-		defer e.Recover()()
-		bs.listenTrackBeanOpenFilledAndClose()
-	}()
-
-	go func() {
-		defer e.Recover()()
-		bs.listenAndExecStTp()
-	}()
+	//todo 待将来打开
+	//go func() {
+	//	defer e.Recover()()
+	//	bs.listenOrderState()
+	//}()
+	//
+	//go func() {
+	//	defer e.Recover()()
+	//	bs.listenTrackBeanOpenFilledAndClose()
+	//}()
+	//
+	//go func() {
+	//	defer e.Recover()()
+	//	bs.listenAndExecStTp()
+	//}()
 	// schedule 一些定时任务
-	bs.scheduleJobs()
+	//bs.scheduleJobs()
 	bs.PostInit()
 	// router
 	bs.router()
@@ -103,21 +103,21 @@ func (bs *backendServer) router() {
 }
 
 // 0 不开，1 max ku sell, -1 min ku buy
-func (bs *backendServer) shouldClose(t *MarginFutureTicker) bool {
-	return t.AskFuture >= t.BidMargin && t.AskFuture <= t.AskMargin
+func (bs *backendServer) shouldClose(t *OkBitTicker) bool {
+	return t.AskBit >= t.BidOk && t.AskBit <= t.AskOk
 }
 
-func (bs *backendServer) realDiff(t *MarginFutureTicker) (signal int, realDiffPct float64) {
+func (bs *backendServer) realDiff(t *OkBitTicker) (signal int, realDiffPct float64) {
 	// 从三个价格中判断是否可以 open position
 	signal = 0
 	realDiffPct = 0
-	if t.BidMargin > t.AskFuture {
-		realDiffPct = (t.BidMargin/t.AskFuture - 1) * 100
+	if t.BidOk > t.AskBit {
+		realDiffPct = (t.BidOk/t.AskBit - 1) * 100
 		if realDiffPct >= bs.config.StrategyOpenThreshold {
 			signal = 1
 		}
-	} else if t.BidFuture > t.AskMargin {
-		realDiffPct = (t.BidFuture/t.AskMargin - 1) * 100
+	} else if t.BidBit > t.AskOk {
+		realDiffPct = (t.BidBit/t.AskOk - 1) * 100
 		if realDiffPct >= bs.config.StrategyOpenThreshold {
 			signal = -1
 		}

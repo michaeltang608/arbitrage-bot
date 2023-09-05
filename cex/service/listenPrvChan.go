@@ -1,4 +1,4 @@
-package oke
+package service
 
 import (
 	"encoding/json"
@@ -21,7 +21,7 @@ func (s *Service) connectAndLoginPrivate() {
 	socketUrl := "wss://ws.okx.com:8443/ws/v5/private"
 	conn, _, err := websocket.DefaultDialer.Dial(socketUrl, nil)
 	if err != nil {
-		log.Panic("oke socket 连续两次连接失败", err.Error())
+		log.Panic("service socket 连续两次连接失败", err.Error())
 	}
 	s.prvCon = conn
 	s.login()

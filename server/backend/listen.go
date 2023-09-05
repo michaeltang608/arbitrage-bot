@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"math"
 	"strings"
-	"sync/atomic"
 	"time"
-	"ws-quant/cex"
 	"ws-quant/cex/models"
 	"ws-quant/common/bean"
 	"ws-quant/common/consts"
@@ -23,7 +21,7 @@ func (bs *backendServer) listenAndExec() {
 	for {
 		select {
 		case tickerBean := <-bs.tickerChan:
-			ticker, ok := bs.OkMarginFutureMap[tickerBean.SymbolName]
+			ticker, ok := bs.OkBitMap[tickerBean.SymbolName]
 			if !ok {
 				log.Error("未能找到%v中map数据", tickerBean.SymbolName)
 				continue
@@ -36,52 +34,52 @@ func (bs *backendServer) listenAndExec() {
 
 			if strings.HasSuffix(tickerBean.InstId, "-SWAP") {
 				// future perpetual
-				ticker.AskFuture = tickerBean.PriceBestAsk
-				ticker.BidFuture = tickerBean.PriceBestBid
+				ticker.AskBit = tickerBean.PriceBestAsk
+				ticker.BidBit = tickerBean.PriceBestBid
 			} else {
 				// margin
-				ticker.AskMargin = tickerBean.PriceBestAsk
-				ticker.BidMargin = tickerBean.PriceBestBid
+				ticker.AskOk = tickerBean.PriceBestAsk
+				ticker.BidOk = tickerBean.PriceBestBid
 			}
-			if ticker.AskFuture <= 0 || ticker.AskMargin <= 0 {
+			if ticker.AskBit <= 0 || ticker.AskOk <= 0 {
 				// 还有一半的数据未收到不进行计算
 				continue
 			}
 
-			openSignal, curDiff := bs.realDiff(ticker)
+			_, curDiff := bs.realDiff(ticker)
 			if bs.maxDiffMarginFuture < curDiff {
 				bs.maxDiffMarginFuture = curDiff
 				if curDiff >= 0.1 {
 					log.Info("curMaxMarginFuture=%v, symbol=%v\n", bs.maxDiffMarginFuture, tickerBean.SymbolName)
 				}
 			}
-			if tickerBean.SymbolName == bs.executingSymbol {
-				marginOpen := bs.okeService.GetOpenOrder(insttype.Margin)
-				if marginOpen != nil && marginOpen.Created.After(time.Now().Add(-time.Second*20)) {
-					log.Info("executing symbol diff=%v", curDiff)
-				}
-			}
-
-			if openSignal != 0 {
-				if atomic.CompareAndSwapInt32(&bs.triggerState, 0, 1) {
-					bs.execOpenLimit(openSignal, ticker, curDiff)
-				}
-			}
+			//if tickerBean.SymbolName == bs.executingSymbol {
+			//	marginOpen := bs.okeService.GetOpenOrder(insttype.Margin)
+			//	if marginOpen != nil && marginOpen.Created.After(time.Now().Add(-time.Second*20)) {
+			//		log.Info("executing symbol diff=%v", curDiff)
+			//	}
+			//}
+			//
+			//if openSignal != 0 {
+			//	if atomic.CompareAndSwapInt32(&bs.triggerState, 0, 1) {
+			//		bs.execOpenLimit(openSignal, ticker, curDiff)
+			//	}
+			//}
 
 			// close position
-			if bs.execStates[0] == orderstate.Filled && bs.execStates[2] == orderstate.Filled {
-				if strings.ToUpper(ticker.Symbol) == strings.ToUpper(bs.executingSymbol) {
-					if bs.shouldClose(ticker) {
-						if atomic.CompareAndSwapInt32(&bs.triggerState, 1, 2) {
-							bs.execCloseMarket(ticker)
-						}
-					}
-				}
-			}
-
-			if bs.config.LogTicker == LogOke && tickerBean.CexName == cex.OKE {
-				log.Info("收到ticker数据，%+v", tickerBean)
-			}
+			//if bs.execStates[0] == orderstate.Filled && bs.execStates[2] == orderstate.Filled {
+			//	if strings.ToUpper(ticker.Symbol) == strings.ToUpper(bs.executingSymbol) {
+			//		if bs.shouldClose(ticker) {
+			//			if atomic.CompareAndSwapInt32(&bs.triggerState, 1, 2) {
+			//				bs.execCloseMarket(ticker)
+			//			}
+			//		}
+			//	}
+			//}
+			//
+			//if bs.config.LogTicker == LogOke && tickerBean.CexName == cex.OKE {
+			//	log.Info("收到ticker数据，%+v", tickerBean)
+			//}
 		}
 	}
 }

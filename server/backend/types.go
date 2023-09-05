@@ -28,11 +28,11 @@ type Oppor struct {
 	MinCex   string
 }
 
-type MarginFutureTicker struct {
-	Symbol    string
-	AskMargin float64
-	BidMargin float64
-	AskFuture float64
-	BidFuture float64
-	LastTime  int64
+type OkBitTicker struct {
+	Symbol   string
+	AskOk    float64
+	BidOk    float64
+	AskBit   float64
+	BidBit   float64
+	LastTime int64
 }

@@ -1,4 +1,4 @@
-package oke
+package service
 
 var (
 	apiKey      = "a8be11a6-e5b0-4a60-b194-d89db6ad735c"
