@@ -18,7 +18,8 @@ var (
 )
 
 type Service struct {
-	pubCon                *websocket.Conn
+	pubConOk              *websocket.Conn
+	pubConBit             *websocket.Conn
 	prvCon                *websocket.Conn
 	pubConLock            sync.Mutex
 	prvConLock            sync.Mutex
@@ -53,6 +54,11 @@ func New(
 	}
 	s.ReloadOrders()
 	return s
+}
+
+func (s *Service) connectAndSubscribePublic() {
+	s.connectAndSubscribePublicOk()
+	s.connectAndSubscribePublicBit()
 }
 
 func (s *Service) GetOpenOrder(instType string) *models.Orders {
@@ -119,8 +125,11 @@ func (s *Service) ListenAndNotify() {
 
 func (s *Service) Close() {
 	log.Info("准备关闭连接")
-	if s.pubCon != nil {
-		_ = s.pubCon.Close()
+	if s.pubConOk != nil {
+		_ = s.pubConOk.Close()
+	}
+	if s.pubConBit != nil {
+		_ = s.pubConBit.Close()
 	}
 	if s.prvCon != nil {
 		_ = s.prvCon.Close()

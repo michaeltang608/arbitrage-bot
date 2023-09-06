@@ -11,61 +11,16 @@ import (
 	"ws-quant/cex"
 	"ws-quant/common/bean"
 	"ws-quant/common/symb"
-	"ws-quant/pkg/feishu"
 )
 
-func (s *Service) connectAndSubscribePublic() {
+func (s *Service) connectAndSubscribePublicBit() {
 
 	s.connectPublic()
 	s.subscribeTickers()
-	s.subscribeFutures()
-	//s.subscribeInstruments()
 
 }
 
-// 产品交易对，目前无需订阅
-func (s *Service) subscribeInstruments() {
-	// subscribe trade products
-	arg := make(map[string]interface{})
-	arg["channel"] = "instruments"
-	arg["instType"] = "MARGIN"
-	req := &Req{
-		Op: "subscribe",
-		Args: []map[string]interface{}{
-			arg,
-		},
-	}
-	reqBytes, _ := json.Marshal(req)
-	err := s.pubCon.WriteMessage(websocket.TextMessage, reqBytes)
-	if err != nil {
-		feishu.Send("准备退出,发送OKEX订阅消息失败")
-		log.Panic("发送OKEX订阅消息失败 ", err)
-	}
-
-}
-func (s *Service) subscribeFutures() {
-	var err error
-	argList := make([]map[string]interface{}, 0)
-	for _, symbol_ := range symb.GetAllOkFuture() {
-
-		arg := make(map[string]interface{})
-		arg["channel"] = "tickers"
-		arg["instId"] = fmt.Sprintf("%s-USDT-SWAP", strings.ToUpper(symbol_))
-		argList = append(argList, arg)
-	}
-
-	req := &Req{
-		Op:   "subscribe",
-		Args: argList,
-	}
-	reqBytes, _ := json.Marshal(req)
-	err = s.pubCon.WriteMessage(websocket.TextMessage, reqBytes)
-	if err != nil {
-		log.Panic("发送OKEX订阅futures消息失败 ", err)
-	}
-	log.Info("订阅全部futures数据成功")
-}
-func (s *Service) subscribeTickers() {
+func (s *Service) subscribeTickersBit() {
 	var err error
 	argList := make([]map[string]interface{}, 0)
 	for _, symbol_ := range symb.GetAllOkFuture() {
@@ -81,14 +36,14 @@ func (s *Service) subscribeTickers() {
 		Args: argList,
 	}
 	reqBytes, _ := json.Marshal(req)
-	err = s.pubCon.WriteMessage(websocket.TextMessage, reqBytes)
+	err = s.pubConBit.WriteMessage(websocket.TextMessage, reqBytes)
 	if err != nil {
 		log.Panic("发送OKEX订阅消息失败 ", err)
 	}
 	log.Info("订阅全部tickers数据成功")
 
 }
-func (s *Service) connectPublic() {
+func (s *Service) connectPublicBit() {
 	// 可能会重连
 	log.Info("开始连接pub con")
 	var err error
@@ -104,19 +59,19 @@ func (s *Service) connectPublic() {
 	if conn == nil {
 		log.Info("奇怪，conn 还是 null")
 	}
-	s.pubCon = conn
+	s.pubConBit = conn
 	s.pubConLastConnectTime = time.Now().Second()
-	log.Info("连接pubCon 成功，开始监听消息了, pubCon==nil, %v", s.pubCon == nil)
+	log.Info("连接pubCon 成功，开始监听消息了, pubCon==nil, %v", s.pubConBit == nil)
 }
 
-func (s *Service) listenAndNotifyPublic() {
+func (s *Service) listenAndNotifyPublicBit() {
 	errCnt := 0
 	for {
-		if s.pubCon == nil {
+		if s.pubConBit == nil {
 			time.Sleep(time.Second)
 			continue
 		}
-		_, msgBytes, err := s.pubCon.ReadMessage()
+		_, msgBytes, err := s.pubConBit.ReadMessage()
 		if err != nil {
 			log.Error("Error in receive:", err)
 			time.Sleep(time.Second)
