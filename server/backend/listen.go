@@ -287,8 +287,10 @@ func (bs *backendServer) AfterComplete(desc string) {
 	bs.Refresh()
 	log.Info(msg)
 	feishu.Send(msg)
-	bs.config.StrategyOpenThreshold = 2
-	_ = mapper.UpdateById(bs.db, 1, models.Config{StrategyOpenThreshold: 2.0})
+
+	newOpenThreshold := 1.5
+	bs.config.StrategyOpenThreshold = newOpenThreshold
+	_ = mapper.UpdateById(bs.db, 1, models.Config{StrategyOpenThreshold: newOpenThreshold})
 	_ = mapper.UpdateByWhere(bs.db, &models.Orders{IsDeleted: "Y"}, "id > ?", 1)
 	go func() {
 		time.Sleep(time.Second * 5)
