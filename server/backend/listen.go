@@ -71,7 +71,9 @@ func (bs *backendServer) listenAndExec() {
 			// close position
 			if bs.execStates[0] == orderstate.Filled && bs.execStates[2] == orderstate.Filled {
 				if strings.ToUpper(ticker.Symbol) == strings.ToUpper(bs.executingSymbol) {
-					if bs.shouldClose(ticker) {
+					openMargin := bs.okeService.GetOpenOrder(insttype.Margin)
+					// 多加个时间判断，等行情稳定的在执行 market close, //todo 等以后看情况是否close market 改为 close limit
+					if time.Now().After(openMargin.FilledTime.Add(time.Minute+15)) && bs.shouldClose(ticker) {
 						if atomic.CompareAndSwapInt32(&bs.triggerState, 1, 2) {
 							bs.execCloseMarket(ticker)
 						}

@@ -155,6 +155,7 @@ func (s *Service) listenAndNotifyPublic() {
 			priceFloat, _ := strconv.ParseFloat(price, 64)
 			priceBestBidFloat, _ := strconv.ParseFloat(bestBid, 64)
 
+			//todo 这里可以采用空间换时间的优化
 			for _, symbol_ := range symb.GetAllOkFuture() {
 				symbol := strings.ToUpper(symbol_)
 				if symbol == strings.ToUpper(symbolStr) {
