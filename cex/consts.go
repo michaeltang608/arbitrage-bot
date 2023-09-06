@@ -1,9 +1,8 @@
 package cex
 
 const (
-	//BINAN = "binan"
-	//HUO   = "huo"
-	OKE   = "service"
+	OKE   = "ok"
+	BIT   = "bit"
 	Buy   = "buy"
 	Sell  = "sell"
 	Open  = "open"

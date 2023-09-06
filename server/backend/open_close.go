@@ -20,7 +20,7 @@ func (bs *backendServer) execOpenLimit(openSignal int, t *OkBitTicker, curDiff f
 	// 先处理 margin, 再处理 future
 	// 计算size
 	symbolPrc := t.AskBit
-	numPerUnit := symb.GetFutureLot(t.Symbol)
+	numPerUnit := symb.GetOkFutureLot(t.Symbol)
 	if numPerUnit == "" {
 		log.Error("未找到该future 的unitNum, %v", t.Symbol)
 		feishu.Send("未找到该future 的unitNum")

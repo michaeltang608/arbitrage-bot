@@ -15,7 +15,7 @@ func (bs *backendServer) initMapAndChan() {
 	// 初始化要监控的 ticker
 	// init okex margin-future map，第一个idx存储
 	bs.OkBitMap = make(map[string]*OkBitTicker)
-	for _, sym := range symb.GetAllOkFuture() {
+	for _, sym := range symb.GetMergeFutureList() {
 		bs.OkBitMap[sym] = &OkBitTicker{Symbol: sym}
 	}
 

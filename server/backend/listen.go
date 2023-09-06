@@ -5,6 +5,7 @@ import (
 	"math"
 	"strings"
 	"time"
+	"ws-quant/cex"
 	"ws-quant/cex/models"
 	"ws-quant/common/bean"
 	"ws-quant/common/consts"
@@ -32,27 +33,28 @@ func (bs *backendServer) listenAndExec() {
 				bs.trackTickerChan <- tickerBean
 			}
 
-			if strings.HasSuffix(tickerBean.InstId, "-SWAP") {
-				// future perpetual
-				ticker.AskBit = tickerBean.PriceBestAsk
-				ticker.BidBit = tickerBean.PriceBestBid
-			} else {
-				// margin
+			if tickerBean.CexName == cex.OKE {
+				// oke future perpetual
 				ticker.AskOk = tickerBean.PriceBestAsk
 				ticker.BidOk = tickerBean.PriceBestBid
+			} else {
+				// bit future perpetual
+				ticker.AskBit = tickerBean.PriceBestAsk
+				ticker.BidBit = tickerBean.PriceBestBid
 			}
 			if ticker.AskBit <= 0 || ticker.AskOk <= 0 {
 				// 还有一半的数据未收到不进行计算
 				continue
 			}
-
 			_, curDiff := bs.realDiff(ticker)
-			if bs.maxDiffMarginFuture < curDiff {
-				bs.maxDiffMarginFuture = curDiff
-				if curDiff >= 0.1 {
-					log.Info("curMaxMarginFuture=%v, symbol=%v\n", bs.maxDiffMarginFuture, tickerBean.SymbolName)
-				}
-			}
+			log.Info("curDiff=%v, symbol=%+v\n", curDiff, ticker)
+			//
+			//if bs.maxDiffMarginFuture < curDiff {
+			//	bs.maxDiffMarginFuture = curDiff
+			//	if curDiff >= 0.1 {
+			//		log.Info("curMaxMarginFuture=%v, symbol=%v\n", bs.maxDiffMarginFuture, tickerBean.SymbolName)
+			//	}
+			//}
 			//if tickerBean.SymbolName == bs.executingSymbol {
 			//	marginOpen := bs.okeService.GetOpenOrder(insttype.Margin)
 			//	if marginOpen != nil && marginOpen.Created.After(time.Now().Add(-time.Second*20)) {

@@ -16,8 +16,7 @@ import (
 
 func (s *Service) connectAndSubscribePublicOk() {
 
-	s.connectPublic()
-	s.subscribeTickers()
+	s.connectPubOk()
 	s.subscribeFutures()
 	//s.subscribeInstruments()
 
@@ -46,7 +45,7 @@ func (s *Service) subscribeInstruments() {
 func (s *Service) subscribeFutures() {
 	var err error
 	argList := make([]map[string]interface{}, 0)
-	for _, symbol_ := range symb.GetAllOkFuture() {
+	for _, symbol_ := range symb.GetMergeFutureList() {
 
 		arg := make(map[string]interface{})
 		arg["channel"] = "tickers"
@@ -65,30 +64,8 @@ func (s *Service) subscribeFutures() {
 	}
 	log.Info("订阅全部futures数据成功")
 }
-func (s *Service) subscribeTickers() {
-	var err error
-	argList := make([]map[string]interface{}, 0)
-	for _, symbol_ := range symb.GetAllOkFuture() {
 
-		arg := make(map[string]interface{})
-		arg["channel"] = "tickers"
-		arg["instId"] = fmt.Sprintf("%s-USDT", strings.ToUpper(symbol_))
-		argList = append(argList, arg)
-	}
-
-	req := &Req{
-		Op:   "subscribe",
-		Args: argList,
-	}
-	reqBytes, _ := json.Marshal(req)
-	err = s.pubConOk.WriteMessage(websocket.TextMessage, reqBytes)
-	if err != nil {
-		log.Panic("发送OKEX订阅消息失败 ", err)
-	}
-	log.Info("订阅全部tickers数据成功")
-
-}
-func (s *Service) connectPublic() {
+func (s *Service) connectPubOk() {
 	// 可能会重连
 	log.Info("开始连接pub con")
 	var err error
@@ -109,7 +86,7 @@ func (s *Service) connectPublic() {
 	log.Info("连接pubCon 成功，开始监听消息了, pubCon==nil, %v", s.pubConOk == nil)
 }
 
-func (s *Service) listenAndNotifyPublic() {
+func (s *Service) listenAndNotifyPubOk() {
 	errCnt := 0
 	for {
 		if s.pubConOk == nil {
@@ -155,7 +132,7 @@ func (s *Service) listenAndNotifyPublic() {
 			priceFloat, _ := strconv.ParseFloat(price, 64)
 			priceBestBidFloat, _ := strconv.ParseFloat(bestBid, 64)
 
-			for _, symbol_ := range symb.GetAllOkFuture() {
+			for _, symbol_ := range symb.GetMergeFutureList() {
 				symbol := strings.ToUpper(symbol_)
 				if symbol == strings.ToUpper(symbolStr) {
 					tickerBean := bean.TickerBean{

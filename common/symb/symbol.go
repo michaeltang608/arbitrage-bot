@@ -8,13 +8,7 @@ import (
 )
 
 var (
-	marginList = []string{"HBAR", "XMR", "ADA", "OMG", "DYDX", "AAVE", "GRT", "ETC", "SAND", "OP", "IMX", "NEAR",
-		"SUSHI", "AR", "ZEC", "ETH", "MASK", "ZIL", "ETH", "DASH", "NEO", "GMT", "MANA", "MATIC", "CRO", "SOL", "XLM",
-		"BNB", "TRX", "AVAX", "ATOM", "SHIB", "SUI", "TRX", "BLUR", "ALGO", "UNI", "SNX", "APT", "FIL", "STX",
-		"EOS", "WAVES", "LTC", "ARB", "WOO", "CFX", "FLOKI", "ICP", "DOT", "APE", "LINK", "XRP", "EGLD", "THETA",
-		"DOGE", "USDC", "XRP", "CRV"}
-
-	futureList = []string{"BTC", "ETH", "LTC", "XRP", "BCH", "SOL", "PEPE", "FIL", "ORDI", "1INCH", "AAVE", "ADA", "AGLD",
+	okFutureList = []string{"BTC", "ETH", "LTC", "XRP", "BCH", "SOL", "PEPE", "FIL", "ORDI", "1INCH", "AAVE", "ADA", "AGLD",
 		"AIDOGE", "ALGO", "ALPHA", "ANT", "APE", "API3", "APT", "AR", "ARB", "ATOM", "AVAX", "AXS", "BADGER", "BAL",
 		"BAND", "BAT", "BICO", "BLUR", "BNB", "BNT", "BSV", "CELO", "CEL", "CETUS", "CFX", "CHZ", "COMP", "CORE",
 		"CRO", "CRV", "CSPR", "CVC", "DASH", "DOGE", "DORA", "DOT", "DYDX", "EGLD", "ENJ", "ENS", "EOS", "ETC", "ETHW",
@@ -25,13 +19,31 @@ var (
 		"TRX", "UMA", "UNI", "USDC", "USTC", "WAVES", "WOO", "XCH", "XLM", "XMR", "XTZ", "YFI", "YFII", "YGG", "ZEC",
 		"ZEN", "ZIL", "ZRX"}
 
-	marginFuturePairList = []string{"XMR", "ADA", "OMG", "DYDX", "AAVE", "GRT", "ETC", "SAND", "OP", "IMX", "NEAR",
-		"SUSHI", "AR", "ZEC", "ETH", "MASK", "ZIL", "ETH", "DASH", "NEO", "GMT", "MANA", "MATIC", "CRO", "SOL", "XLM",
-		"BNB", "TRX", "AVAX", "ATOM", "SHIB", "SUI", "TRX", "BLUR", "ALGO", "UNI", "SNX", "APT", "FIL", "STX", "EOS",
-		"WAVES", "LTC", "ARB", "WOO", "CFX", "FLOKI", "ICP", "DOT", "APE", "LINK", "XRP", "EGLD", "THETA", "DOGE", "USDC",
-		"XRP", "CRV"}
+	bitFutureList = []string{"BTC", "ETH", "XRP", "EOS", "BCH", "LTC", "ADA", "ETC", "LINK", "TRX", "DOT", "DOGE", "SOL",
+		"MATIC", "BNB", "UNI", "ICP", "AAVE", "FIL", "XLM", "ATOM", "XTZ", "SUSHI", "AXS", "THETA", "AVAX", "DASH", "SHIB",
+		"MANA", "GALA", "SAND", "DYDX", "CRV", "NEAR", "EGLD", "KSM", "AR", "REN", "FTM", "PEOPLE", "LRC", "NEO", "ALICE",
+		"WAVES", "ALGO", "IOTA", "YFI", "ENJ", "GMT", "ZIL", "IOST", "APE", "RUNE", "KNC", "APT", "CHZ", "XMR", "ROSE",
+		"ZRX", "KAVA", "ENS", "GAL", "MTL", "AUDIO", "SXP", "C98", "OP", "RSR", "SNX", "STORJ", "1INCH", "COMP", "IMX",
+		"LUNA2", "FLOW", "REEF", "TRB", "QTUM", "API3", "MASK", "WOO", "GRT", "BAND", "STG", "LUNC", "ONE", "JASMY",
+		"FOOTBALL", "MKR", "BAT", "MAGIC", "ALPHA", "LDO", "OCEAN", "CELO", "BLUR", "MINA", "CORE", "CFX", "HIGH",
+		"ASTR", "AGIX", "GMX", "LINA", "ANKR", "GFT", "ACH", "FET", "FXS", "RNDR", "HOOK", "BNX", "SSV", "BGHOT10",
+		"USDC", "LQTY", "STX", "TRU", "DUSK", "HBAR", "INJ", "BEL", "COTI", "VET", "ARB", "TOMO", "LOOKS", "KLAY",
+		"FLM", "OMG", "RLC", "CKB", "ID", "LIT", "JOE", "TLM", "HOT", "BLZ", "CHR", "RDNT", "ICX", "HFT", "ONT",
+		"ZEC", "UNFI", "NKN", "ARPA", "DAR", "SFP", "CTSI", "SKL", "RVN", "CELR", "FLOKI", "SPELL", "SUI", "EDU", "PEPE",
+		"METAHOT", "IOTX", "CTK", "STMX", "UMA", "BSV", "10000AIDOGE", "10000LADYS", "TON", "GTC", "DENT", "ZEN", "PHB",
+		"ORDI", "KEY", "IDEX", "SLP", "COMBO", "AMB", "LEVER", "ZZZ", "RAD", "ANT", "QNT", "MAV", "MDT", "XVG", "1000XEC",
+		"AGLD", "WLD", "PENDLE", "ARKM", "CVX", "YGG", "OGN", "LPT", "BNT", "SEI", "CYBER", "BAKE"}
 
 	futureMap = make(map[string]string)
+
+	mergeFutureList = []string{"BTC", "ETH", "LTC", "XRP", "BCH", "SOL", "PEPE", "FIL", "ORDI", "1INCH", "AAVE", "ADA",
+		"AGLD", "ALGO", "ALPHA", "ANT", "APE", "API3", "APT", "AR", "ARB", "ATOM", "AVAX", "AXS", "BAND", "BAT", "BLUR",
+		"BNB", "BNT", "BSV", "CELO", "CFX", "CHZ", "COMP", "CORE", "CRV", "DASH", "DOGE", "DOT", "DYDX", "EGLD", "ENJ",
+		"ENS", "EOS", "ETC", "FLM", "FLOKI", "FTM", "GALA", "GFT", "GMT", "GMX", "GRT", "ICP", "IMX", "IOST", "IOTA",
+		"KLAY", "KNC", "KSM", "LDO", "LINK", "LOOKS", "LPT", "LRC", "LUNC", "MAGIC", "MANA", "MASK", "MATIC", "MINA",
+		"MKR", "NEAR", "NEO", "OMG", "ONT", "OP", "PEOPLE", "QTUM", "RDNT", "REN", "RSR", "RVN", "SAND", "SHIB", "SLP",
+		"SNX", "STORJ", "STX", "SUI", "SUSHI", "THETA", "TON", "TRB", "TRX", "UMA", "UNI", "USDC", "WAVES", "WOO", "XLM",
+		"XMR", "XTZ", "YFI", "YGG", "ZEC", "ZEN", "ZIL", "ZRX"}
 )
 
 func init() {
@@ -52,9 +64,9 @@ func init() {
 // GetFutureLotByInstId 获取合约的面值
 func GetFutureLotByInstId(instId string) string {
 	ary := strings.Split(instId, "-")
-	return GetFutureLot(ary[0])
+	return GetOkFutureLot(ary[0])
 }
-func GetFutureLot(symbol string) string {
+func GetOkFutureLot(symbol string) string {
 	symbol = strings.ToUpper(symbol)
 	if lot, ok := futureMap[symbol]; ok {
 		return lot
@@ -65,6 +77,6 @@ func GetFutureLot(symbol string) string {
 	}
 }
 
-func GetAllOkFuture() []string {
-	return marginFuturePairList
+func GetMergeFutureList() []string {
+	return mergeFutureList
 }

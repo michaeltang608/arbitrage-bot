@@ -115,7 +115,11 @@ func (s *Service) ConnectAndSubscribe() {
 func (s *Service) ListenAndNotify() {
 	go func() {
 		defer e.Recover()
-		s.listenAndNotifyPublic()
+		s.listenAndNotifyPubOk()
+	}()
+	go func() {
+		defer e.Recover()
+		s.listenAndNotifyPubBit()
 	}()
 	go func() {
 		defer e.Recover()
