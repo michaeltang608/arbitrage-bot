@@ -20,3 +20,7 @@ Due to the highly competitive nature of the market, opportunity is fleeting. In 
 can hardly be execuetd at the expected price or the limit orders could never be filled. As a result, we need to take a lot 
 into consideration in the implementation of this arbitrage strategy.
 ```
+![image](https://github.com/michaeltang608/arbitrage-bot/assets/17403372/ce927ea9-911b-4e2f-8e54-1583897bb381)
+
+![image](https://github.com/michaeltang608/arbitrage-bot/assets/17403372/8f769631-0afb-48bb-93c3-02ac4aa76dfc)
+
